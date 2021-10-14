@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EarthLat.Backend.Api", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EarthLat.Backend.Core", "src\EarthLat.Backend.Core\EarthLat.Backend.Core.csproj", "{ED8BD771-5D64-4F27-99F5-436980628577}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarthLat.Backend.Function", "src\EarthLat.Backend.Function\EarthLat.Backend.Function.csproj", "{AA7D2C95-8286-42C4-BF22-5F55B568DC07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EarthLat.Backend.Function", "src\EarthLat.Backend.Function\EarthLat.Backend.Function.csproj", "{AA7D2C95-8286-42C4-BF22-5F55B568DC07}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarthLat.Backend.Core.Abstraction", "src\EarthLat.Backend.Core.Abstraction\EarthLat.Backend.Core.Abstraction.csproj", "{3122DAF3-ACCB-432E-9A35-25E121E6DDF6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{AA7D2C95-8286-42C4-BF22-5F55B568DC07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA7D2C95-8286-42C4-BF22-5F55B568DC07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA7D2C95-8286-42C4-BF22-5F55B568DC07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3122DAF3-ACCB-432E-9A35-25E121E6DDF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3122DAF3-ACCB-432E-9A35-25E121E6DDF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3122DAF3-ACCB-432E-9A35-25E121E6DDF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3122DAF3-ACCB-432E-9A35-25E121E6DDF6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
