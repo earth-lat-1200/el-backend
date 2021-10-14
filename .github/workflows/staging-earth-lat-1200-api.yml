@@ -3,9 +3,9 @@ env:
   AZURE_FUNCTIONAPP_NAME: staging-earth-lat-1200-api
   AZURE_FUNCTIONAPP_PACKAGE_PATH: src\EarthLat.Backend.Function\.
   CONFIGURATION: Release
-  DOTNET_CORE_VERSION: 6.0.x
+  DOTNET_CORE_VERSION: '6.0'
   WORKING_DIRECTORY: src\EarthLat.Backend.Function
-  DOTNET_CORE_VERSION_INPROC: 6.0.x
+  DOTNET_CORE_VERSION_INPROC: '6.0'
 
 on:
   push:
@@ -21,10 +21,12 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+        include-prerelease: True
     - name: Setup .NET Core (for inproc extensions)
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION_INPROC }}
+        include-prerelease: True
     - name: Restore
       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
     - name: Build
