@@ -7,7 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="TableStorage\" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.2.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EarthLat.Backend.Core.Abstraction\EarthLat.Backend.Core.Abstraction.csproj" />
   </ItemGroup>
 
 </Project>
