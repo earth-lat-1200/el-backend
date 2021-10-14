@@ -6,6 +6,12 @@ env:
   DOTNET_CORE_VERSION: 6.0.x
   WORKING_DIRECTORY: src\EarthLat.Backend.Function
   DOTNET_CORE_VERSION_INPROC: ''
+
+on:
+  push:
+    branches:
+      - main
+  
 jobs:
   build-and-deploy:
     runs-on: windows-latest
