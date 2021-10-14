@@ -3,9 +3,10 @@ env:
   AZURE_FUNCTIONAPP_NAME: staging-earth-lat-1200-api
   AZURE_FUNCTIONAPP_PACKAGE_PATH: src\EarthLat.Backend.Function\.
   CONFIGURATION: Release
+  DOTNET_CORE_VERSION_: '3.1'
   DOTNET_CORE_VERSION: '6.0'
   WORKING_DIRECTORY: src\EarthLat.Backend.Function
-  DOTNET_CORE_VERSION_INPROC: '3.1.0'
+  DOTNET_CORE_VERSION_INPROC: ''
 
 on:
   push:
@@ -17,6 +18,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@master
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_CORE_VERSION_ }}
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
