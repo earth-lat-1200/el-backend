@@ -2,4 +2,4 @@
 
 ## EarthLat.Backend.Api
 
-## EarthLat.Backend.SyncService
+## EarthLat.Backend.Function
