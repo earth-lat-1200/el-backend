@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ using Newtonsoft.Json;
 
 namespace EarthLat.Backend.Function
 {
-    public static class StationFunction
+    public class StationFunction
     {
         [FunctionName("Function1")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
@@ -38,7 +39,27 @@ namespace EarthLat.Backend.Function
 
             return new OkObjectResult(responseMessage);
         }
+
+
+        [FunctionName(nameof(GetByLocation))]
+        [OpenApiOperation(operationId: "GetByLocation", tags: new[] { "name" })]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
+        [OpenApiParameter(name: "longitude", In = ParameterLocation.Query, Required = true, Type = typeof(double), Description = "Longitude")]
+        [OpenApiParameter(name: "latitude", In = ParameterLocation.Query, Required = true, Type = typeof(double), Description = "Latitude")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "The OK response")]
+        public async Task<IActionResult> GetByLocation(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = nameof(GetByLocation))] HttpRequest req, ILogger log)
+        {
+            await Task.CompletedTask;
+            if (!double.TryParse(req.Query["longitude"], out var longitude) && !double.TryParse(req.Query["latitude"], out var latitude))
+                {
+                throw new ArgumentException($"{nameof(longitude)} or {nameof(latitude)} are invalid.");
+            }
+
+
+
+            return new OkResult();
+        }
     }
- 
 }
 
