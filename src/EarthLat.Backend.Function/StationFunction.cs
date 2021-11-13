@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 
 namespace EarthLat.Backend.Function
 {
-    public static class Function1
+    public static class StationFunction
     {
         public static readonly List<Station> Stations = new List<Station>();
 
@@ -24,8 +24,8 @@ namespace EarthLat.Backend.Function
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
-        public static IActionResult GetAllStations(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "station")] HttpRequest req,
+        public static async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("Getting Station list items");
@@ -52,5 +52,6 @@ namespace EarthLat.Backend.Function
             return new OkObjectResult(station);
         }
     }
-} 
+ 
+}
 

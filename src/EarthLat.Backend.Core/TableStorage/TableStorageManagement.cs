@@ -13,49 +13,32 @@ namespace EarthLat.Backend.Core.TableStorage
         public TableStorageManagement(ILogger<TableStorageManagement> logger, string connectionString)
         {
             _logger = logger;
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                _logger?.LogError($"'{nameof(connectionString)}' cannot be null or empty.");
-                throw new ArgumentException($"'{nameof(connectionString)}' cannot be null or empty.", nameof(connectionString));
-            }
+            connectionString.ThrowIfIsNullEmptyOrWhitespace(nameof(connectionString));
 
             _tableServiceClient = new TableServiceClient(connectionString);
         }
 
         public void CreateTable(string tableName)
         {
+            tableName.ThrowIfIsNullEmptyOrWhitespace(nameof(tableName));
             EnsureTable(tableName);
         }
 
         public void DeleteTable(string tableName)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-            {
-                throw new ArgumentException($"'{nameof(tableName)}' cannot be null or whitespace.", nameof(tableName));
-            }
-
+            tableName.ThrowIfIsNullEmptyOrWhitespace(nameof(tableName));
             _tableServiceClient.DeleteTable(tableName);
         }
 
         public void EnsureTable(string tableName)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-            {
-                _logger?.LogError($"'{nameof(tableName)}' cannot be null or whitespace.");
-                throw new ArgumentException($"'{nameof(tableName)}' cannot be null or whitespace.", nameof(tableName));
-            }
-
+            tableName.ThrowIfIsNullEmptyOrWhitespace(nameof(tableName));
             _tableServiceClient.CreateTableIfNotExists(tableName);
         }
 
         public string GetTable(string tableName)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-            {
-                _logger?.LogError($"'{nameof(tableName)}' cannot be null or whitespace.");
-                throw new ArgumentException($"'{nameof(tableName)}' cannot be null or whitespace.", nameof(tableName));
-            }
+            tableName.ThrowIfIsNullEmptyOrWhitespace(nameof(tableName));
 
             return _tableServiceClient?.Query(filter: $"TableName eq '{tableName}'")
                                        .FirstOrDefault()?.Name ?? $"No table with {tableName} found.";
