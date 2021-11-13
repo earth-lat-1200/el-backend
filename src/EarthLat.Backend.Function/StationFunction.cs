@@ -1,6 +1,4 @@
-using System.IO;
-using System.Net;
-using System.Threading.Tasks;
+using EarthLat.Backend.Core.BusinessLogic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -9,9 +7,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
 using System;
-using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -27,13 +23,12 @@ namespace EarthLat.Backend.Function
         }
 
         [FunctionName(nameof(GetStations))]
-        [OpenApiOperation(operationId: "GetStations", tags: new[] { "name" })]
+        [OpenApiOperation(operationId: nameof(GetStations), tags: new[] { "name" })]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
-        [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "The OK response")]
         public static IActionResult GetStations(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "station/{id}")] HttpRequest req,
-            ILogger log, string id)
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "stations")] HttpRequest req,
+            ILogger log)
         {
             log.LogInformation("Getting Station by id");
 
@@ -46,16 +41,12 @@ namespace EarthLat.Backend.Function
             return new OkObjectResult(station);
         }
 
-       
-
-
-
 
         [FunctionName(nameof(GetStationById))]
         [OpenApiOperation(operationId: "GetStationById", tags: new[] { "name" })]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "The OK response")]
         public static IActionResult GetStationById(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "station/{id}")] HttpRequest req,
             ILogger log, string id)
