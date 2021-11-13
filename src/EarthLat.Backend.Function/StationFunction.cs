@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +17,9 @@ namespace EarthLat.Backend.Function
 {
     public static class StationFunction
     {
-        [FunctionName("Function1")]
+        public static readonly List<Station> Stations = new List<Station>();
+
+        [FunctionName(nameof(GetAllStations))]
         [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
         [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
@@ -24,19 +28,28 @@ namespace EarthLat.Backend.Function
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            log.LogInformation("Getting Station list items");
 
-            string name = req.Query["name"];
+            return new OkObjectResult(Stations);
+        }
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+        [FunctionName(nameof(GetStationById))]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Query)]
+        [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
+        public static IActionResult GetStationById(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "station/{id}")] HttpRequest req,
+            ILogger log, string id)
+        {
+            log.LogInformation("Getting Station by id");
 
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
-
-            return new OkObjectResult(responseMessage);
+            var station = Stations.FirstOrDefault(t => t.Id == id);
+            if(station == null)
+            {
+                return new NotFoundResult();
+            }
+            return new OkObjectResult(station);
         }
     }
  
