@@ -4,12 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EarthLat.Backend.Core.Models
+namespace EarthLat.Backend.Core.Dtos
 {
-    public class Station
+    public class StationInfoDto
     {
-        public  byte[]? ImgTotal { get; set; }
-        public byte[]? ImgDetail { get; set; }
         public string? StationName { get; set; }
         public string? StationId { get; set; }
         public string? SundialName { get; set; }

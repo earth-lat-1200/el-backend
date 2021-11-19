@@ -1,4 +1,5 @@
 ﻿using EarthLat.Backend.Core.Abstraction;
+using EarthLat.Backend.Core.BusinessLogic;
 using EarthLat.Backend.Core.FileStorage;
 using EarthLat.Backend.Core.TableStorage;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
@@ -17,6 +18,7 @@ namespace EarthLat.Backend.Function
 
             builder.Services.AddSingleton<IFileStorage, FileStorageService>();
             builder.Services.AddSingleton<ITableStorageManagement, TableStorageManagement>();
+            builder.Services.AddSingleton<IStationLogic, StationLogic>();
             
             builder.Services.AddLogging(c => c.AddConsole());
         }
