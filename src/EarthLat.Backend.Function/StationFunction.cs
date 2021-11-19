@@ -38,6 +38,7 @@ namespace EarthLat.Backend.Function
             Latitude = 48.30,
             Longitude = 10.00
         };
+
         private static readonly RemoteConfig exampleConfig = new RemoteConfig
         {
             IsCamOffline = false,
