@@ -1,4 +1,4 @@
-﻿namespace EarthLat.Backend.Core
+﻿namespace EarthLat.Backend.Core.Extensions
 {
     public static class ArgumentExtensions
     {
