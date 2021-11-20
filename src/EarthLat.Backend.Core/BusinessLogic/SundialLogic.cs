@@ -10,7 +10,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
     {
         private readonly ILogger<ISundialLogic> logger;
         private readonly ITableStorageService _tableStorageService;
-        private readonly IMapper _mapper;
 
         public SundialLogic(ILogger<ISundialLogic> logger, 
             ITableStorageService tableStorageService, 
@@ -18,7 +17,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             this.logger = logger;
             _tableStorageService = tableStorageService ?? throw new ArgumentNullException(nameof(tableStorageService));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
         public async Task<IEnumerable<Station>> GetAllStationsAsync()
