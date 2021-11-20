@@ -1,4 +1,4 @@
-﻿namespace EarthLat.Backend.Core.Abstraction
+﻿namespace EarthLat.Backend.Core.Interfaces
 {
     public interface IFileStorage
     {

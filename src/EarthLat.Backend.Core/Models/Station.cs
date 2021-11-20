@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Azure;
+using Azure.Data.Tables;
 
 namespace EarthLat.Backend.Core.Models
 {
-    public class Station
+    public class Station : ITableEntity
     {
-        public  byte[]? ImgTotal { get; set; }
-        public byte[]? ImgDetail { get; set; }
         public string? StationName { get; set; }
-        public string? StationId { get; set; }
         public string? SundialName { get; set; }
         public string? Location { get; set; }
         public double Latitude { get; set; }
@@ -23,5 +17,14 @@ namespace EarthLat.Backend.Core.Models
         public string? TeamName { get; set; }
         public string? NearbyPublicInstitute { get; set; }
         public string? OrganizationalForm { get; set; }
+        public string LastImageKey { get; set; }
+
+        // StationId
+        public string PartitionKey { get; set; }
+
+        // Longitude_Latitude
+        public string RowKey { get; set; }
+        public DateTimeOffset? Timestamp { get; set; }
+        public ETag ETag { get; set; }
     }
 }

@@ -1,10 +1,8 @@
-﻿using EarthLat.Backend.Core.Abstraction;
-using EarthLat.Backend.Core.BusinessLogic;
-using EarthLat.Backend.Core.FileStorage;
-using EarthLat.Backend.Core.TableStorage;
+﻿using EarthLat.Backend.Core;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
 
 [assembly: FunctionsStartup(typeof(EarthLat.Backend.Function.Startup))]
 
@@ -14,14 +12,9 @@ namespace EarthLat.Backend.Function
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            builder.Services.AddHttpClient();
-
-            builder.Services.AddSingleton<IFileStorage, FileStorageService>();
-            builder.Services.AddSingleton<ITableStorageManagement, TableStorageManagement>();
-            builder.Services.AddSingleton<IStationLogic, StationLogic>();
-            
+            builder.Services.AddEarthLatBackendCore(Environment.GetEnvironmentVariable("TABLE_STORAGE_CONNECTION"));
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddLogging(c => c.AddConsole());
         }
-
     }
 }

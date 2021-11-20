@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Storage.Files.Shares;
-using EarthLat.Backend.Core.Abstraction;
+using EarthLat.Backend.Core.Extensions;
+using EarthLat.Backend.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace EarthLat.Backend.Core.FileStorage
@@ -12,7 +13,10 @@ namespace EarthLat.Backend.Core.FileStorage
         private readonly string _connectionString;
         private readonly string _shareName;
 
-        public FileStorageService(ILogger<IFileStorage> logger, string connectionString, string shareName)
+        public FileStorageService(
+            ILogger<IFileStorage> logger, 
+            string connectionString, 
+            string shareName)
         {
             connectionString.ThrowIfIsNullEmptyOrWhitespace(nameof(connectionString));
             shareName.ThrowIfIsNullEmptyOrWhitespace(nameof(shareName));

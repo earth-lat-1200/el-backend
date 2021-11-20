@@ -1,16 +1,18 @@
 ﻿using Azure.Data.Tables;
-using EarthLat.Backend.Core.Abstraction;
+using EarthLat.Backend.Core.Extensions;
+using EarthLat.Backend.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace EarthLat.Backend.Core.TableStorage
 {
-
     public class TableStorageManagement : ITableStorageManagement
     {
         private readonly ILogger<TableStorageManagement> _logger;
         private readonly TableServiceClient _tableServiceClient;
 
-        public TableStorageManagement(ILogger<TableStorageManagement> logger, string connectionString)
+        public TableStorageManagement(
+            ILogger<TableStorageManagement> logger, 
+            string connectionString)
         {
             _logger = logger;
             connectionString.ThrowIfIsNullEmptyOrWhitespace(nameof(connectionString));
@@ -36,7 +38,7 @@ namespace EarthLat.Backend.Core.TableStorage
             _tableServiceClient.CreateTableIfNotExists(tableName);
         }
 
-        public string GetTable(string tableName)
+        public string GetTableAsync(string tableName)
         {
             tableName.ThrowIfIsNullEmptyOrWhitespace(nameof(tableName));
 
@@ -45,5 +47,19 @@ namespace EarthLat.Backend.Core.TableStorage
         }
 
         public IEnumerable<string> GetTables() => _tableServiceClient.Query().Select(q => q.Name).ToArray();
+
+        public T GetByKeys<T>(string partitionKey, string rowKey)
+        {
+            partitionKey.ThrowIfIsNullEmptyOrWhitespace(nameof(partitionKey));
+            rowKey.ThrowIfIsNullEmptyOrWhitespace(nameof(rowKey));
+
+            var result = _tableServiceClient.Query(filter: $"PartitionKey eq '{partitionKey}' and RowKey eq '{rowKey}'").Cast<T>();
+            return result.FirstOrDefault();
+        }
+
+        public IEnumerable<T> GetTablesEntitiesByPartition<T>(string partitionKey)
+        {
+            return _tableServiceClient.Query(filter: $"PartitionKey eq '{partitionKey}'").Cast<T>();
+        }
     }
 }
