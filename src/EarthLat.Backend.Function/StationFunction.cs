@@ -1,12 +1,10 @@
 using AutoMapper;
-using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using Microsoft.OpenApi.Models;
@@ -42,7 +40,7 @@ namespace EarthLat.Backend.Function
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
-        [FunctionName(nameof(GetAllStations))]
+        [Function(nameof(GetAllStations))]
         [OpenApiOperation(operationId: nameof(GetAllStations), tags: new[] { "Frontend API" }, Summary = "Gets all stations.", Description = "Get all station infos of the available stations.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IEnumerable<StationInfoDto>), Description = "All stations in the system.")]
@@ -56,7 +54,7 @@ namespace EarthLat.Backend.Function
             return result is null || result?.Count < 1 ? new NotFoundResult() : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
         }
 
-        [FunctionName(nameof(GetLatestDetailImageById))]
+        [Function(nameof(GetLatestDetailImageById))]
         [OpenApiOperation(operationId: nameof(GetLatestDetailImageById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
         [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
@@ -73,7 +71,7 @@ namespace EarthLat.Backend.Function
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgDetail });
         }
 
-        [FunctionName(nameof(GetLatestTotalImageById))]
+        [Function(nameof(GetLatestTotalImageById))]
         [OpenApiOperation(operationId: nameof(GetLatestTotalImageById), tags: new[] { "Frontend API" }, Summary = "Gets current total image by stationId.", Description = "Get the latest created total image of a station.")]
         [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
@@ -90,7 +88,7 @@ namespace EarthLat.Backend.Function
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgTotal });
         }
 
-        [FunctionName(nameof(PushStationInfos))]
+        [Function(nameof(PushStationInfos))]
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" }, 
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]

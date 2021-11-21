@@ -1,4 +1,4 @@
-﻿namespace EarthLat.Backend.Core.Dtos
+﻿namespace EarthLat.Backend.Function.Dtos
 {
     public class ImgDto
     {
