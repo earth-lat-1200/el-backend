@@ -39,7 +39,6 @@ namespace EarthLat.Backend.Core
                 throw new ConfigurationException($"'{nameof(functionUrl)}' cannot be null or whitespace.");
             }
 
-
             services.AddHttpClient();
             services.AddSingleton<IAdminLogic, AdminLogic>();
             var provider = services.BuildServiceProvider();
