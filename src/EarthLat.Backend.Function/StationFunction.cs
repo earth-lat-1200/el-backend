@@ -5,6 +5,7 @@ using EarthLat.Backend.Function.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
 using Microsoft.OpenApi.Models;
@@ -42,12 +43,12 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetAllStations))]
         [OpenApiOperation(operationId: nameof(GetAllStations), tags: new[] { "Frontend API" }, Summary = "Gets all stations.", Description = "Get all station infos of the available stations.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IEnumerable<StationInfoDto>), Description = "All stations in the system.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<ActionResult<IEnumerable<StationInfoDto>>> GetAllStations(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "stations")] HttpRequest request)
+            [HttpTrigger(AuthorizationLevel.Function, "get","post")] HttpRequestData request)
         {
             List<Station> result = (await _stationLogic.GetAllStationsAsync()).ToList();
 
@@ -57,15 +58,18 @@ namespace EarthLat.Backend.Function
         [Function(nameof(GetLatestDetailImageById))]
         [OpenApiOperation(operationId: nameof(GetLatestDetailImageById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
         [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest detail image of a station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<IActionResult> GetLatestDetailImageById(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "stations/images/detail/{id}")] HttpRequest request)
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
-            string id = request.Query["id"];
+            string id = request.FunctionContext
+                                  .BindingContext
+                                  .BindingData["id"]
+                                  .ToString();
             var images = await _stationLogic.GetLatestImagesByIdAsync(id);
 
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgDetail });
@@ -74,15 +78,18 @@ namespace EarthLat.Backend.Function
         [Function(nameof(GetLatestTotalImageById))]
         [OpenApiOperation(operationId: nameof(GetLatestTotalImageById), tags: new[] { "Frontend API" }, Summary = "Gets current total image by stationId.", Description = "Get the latest created total image of a station.")]
         [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest total image of a station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<ActionResult<ImgDto>> GetLatestTotalImageById(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "stations/images/total/{id}")] HttpRequest request)
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
-            string id = request.Query["id"];
+            string id = request.FunctionContext
+                                   .BindingContext
+                                   .BindingData["id"]
+                                   .ToString();
             var images = await _stationLogic.GetLatestImagesByIdAsync(id);
 
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgTotal });
@@ -92,13 +99,13 @@ namespace EarthLat.Backend.Function
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" }, 
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "code", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), 
             Summary = "The OK response" , Description = "The OK response returns the remotConfig for the specific station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<IActionResult> PushStationInfos(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "stations/PushStationInfos")] HttpRequest request)
+            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
         {
             string requestBody = String.Empty;
             using (StreamReader streamReader = new(request.Body))
