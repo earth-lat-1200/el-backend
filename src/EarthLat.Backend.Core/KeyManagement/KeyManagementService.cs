@@ -42,7 +42,7 @@ namespace EarthLat.Backend.Core.KeyManagement
             }
         }
 
-        public async Task<string> ValidateKey(string key)
+        public async Task<bool> CheckPermission(string key, string stationAbbreviation)
         {
             if (!_keymap.ContainsKey(key))
             {
@@ -52,7 +52,8 @@ namespace EarthLat.Backend.Core.KeyManagement
                     throw new AccessViolationException();
                 }
             }
-            return _keymap[key];
+
+            return _keymap[key].ToLower() == stationAbbreviation.ToLower();
         }
 
         private class FunctionKeysResponseDto

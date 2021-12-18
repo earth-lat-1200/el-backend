@@ -1,13 +1,14 @@
 using AutoMapper;
 using EarthLat.Backend.Core.Interfaces;
+using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
+using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using System;
@@ -23,22 +24,15 @@ namespace EarthLat.Backend.Function
     {
         private readonly ISundialLogic _stationLogic;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _configuration;
+        private readonly KeyManagementService _keyManagementService;
 
-        private static readonly RemoteConfig exampleConfig = new RemoteConfig
-        {
-            IsCamOffline = false,
-            Period = TimeSpan.FromSeconds(2),
-            IsSeries = false,
-            IsZoomMove = false,
-            IsZoomDrawRect = false,
-            ZoomCenterPerCX = 0,
-            ZoomCenterPerCy = 0
-        };
-
-        public StationFunction(ISundialLogic stationLogic, IMapper mapper)
+        public StationFunction(ISundialLogic stationLogic, IMapper mapper, IConfiguration configuration, KeyManagementService keyManagementService)
         {
             _stationLogic = stationLogic ?? throw new ArgumentNullException(nameof(stationLogic));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _keyManagementService = keyManagementService ?? throw new ArgumentNullException(nameof(keyManagementService));
         }
 
         [Function(nameof(GetAllStations))]
@@ -98,6 +92,7 @@ namespace EarthLat.Backend.Function
         [Function(nameof(PushStationInfos))]
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" }, 
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
+        [OpenApiParameter("stationAbbreviation", In = ParameterLocation.Path)]
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), 
@@ -105,9 +100,14 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<IActionResult> PushStationInfos(
-            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationAbbreviation}/Push")] HttpRequestData request, string stationAbbreviation)
         {
-            string requestBody = String.Empty;
+            if(!await _keyManagementService.CheckPermission(request.GetHeaderKey(), stationAbbreviation))
+            {
+                return new UnauthorizedResult();
+            }
+
+            string requestBody = string.Empty;
             using (StreamReader streamReader = new(request.Body))
             {
                 requestBody = await streamReader.ReadToEndAsync();
