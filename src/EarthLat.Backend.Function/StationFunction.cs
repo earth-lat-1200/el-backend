@@ -1,5 +1,6 @@
 using AutoMapper;
 using EarthLat.Backend.Core.Interfaces;
+using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
+using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using System;
@@ -22,21 +24,15 @@ namespace EarthLat.Backend.Function
     {
         private readonly ISundialLogic _stationLogic;
         private readonly IMapper _mapper;
-        private static readonly RemoteConfig exampleConfig = new RemoteConfig
-        {
-            IsCamOffline = false,
-            Period = TimeSpan.FromSeconds(2),
-            IsSeries = false,
-            IsZoomMove = false,
-            IsZoomDrawRect = false,
-            ZoomCenterPerCX = 0,
-            ZoomCenterPerCy = 0
-        };
+        private readonly IConfiguration _configuration;
+        private readonly KeyManagementService _keyManagementService;
 
-        public StationFunction(ISundialLogic stationLogic, IMapper mapper)
+        public StationFunction(ISundialLogic stationLogic, IMapper mapper, IConfiguration configuration, KeyManagementService keyManagementService)
         {
             _stationLogic = stationLogic ?? throw new ArgumentNullException(nameof(stationLogic));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _keyManagementService = keyManagementService ?? throw new ArgumentNullException(nameof(keyManagementService));
         }
 
         [Function(nameof(GetAllStations))]
@@ -103,6 +99,7 @@ namespace EarthLat.Backend.Function
         [Function(nameof(PushStationInfos))]
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" }, 
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
+        [OpenApiParameter("stationId", In = ParameterLocation.Path)]
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), 
@@ -110,10 +107,17 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<IActionResult> PushStationInfos(
-            [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
-            string requestBody = String.Empty;
-            
+            var context = JsonConvert.DeserializeObject<Dictionary<string, string>>((string)request.FunctionContext.BindingContext.BindingData["Headers"]);
+            var header = context["Authorization"];
+
+            if (!await _keyManagementService.CheckPermission(request.GetHeaderKey(), stationId))
+            {
+                return new UnauthorizedResult();
+            }
+
+            string requestBody = string.Empty;
             using (StreamReader streamReader = new(request.Body))
             {
                 requestBody = await streamReader.ReadToEndAsync();
@@ -123,6 +127,29 @@ namespace EarthLat.Backend.Function
             var remoteConfig = await _stationLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
 
             return new OkObjectResult(remoteConfig);
+        }
+
+        [Function(nameof(GetLatestImageAsPictureById))]
+        [OpenApiOperation(operationId: nameof(GetLatestImageAsPictureById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
+        [OpenApiParameter("imageType", In = ParameterLocation.Path)]
+        [OpenApiParameter("stationId", In = ParameterLocation.Path)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "image/jpeg", bodyType: typeof(FileContentResult), Description = "The latest detail image of a station as a picture.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<IActionResult> GetLatestImageAsPictureById(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "GetLatestImageAsPictureById/{imageType}/{stationId}")] HttpRequestData request, string imageType)
+        {
+            string id = request.FunctionContext
+                       .BindingContext
+                       .BindingData["stationId"]
+                       .ToString();
+
+            var images = await _stationLogic.GetLatestImagesByIdAsync(id);
+
+            byte[] image = imageType == "detail" ? images?.ImgDetail : images?.ImgTotal;
+            return image is null ? new NotFoundResult() : new FileContentResult(image, "image/jpeg");
         }
     }
 }
