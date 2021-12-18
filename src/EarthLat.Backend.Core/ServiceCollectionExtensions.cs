@@ -3,6 +3,7 @@ using EarthLat.Backend.Core.Exceptions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.TableStorage;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EarthLat.Backend.Core
@@ -17,8 +18,7 @@ namespace EarthLat.Backend.Core
             }
 
             services.AddSingleton<ISundialLogic, SundialLogic>();
-            services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));
-            
+            services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));       
             return services;
         }
 

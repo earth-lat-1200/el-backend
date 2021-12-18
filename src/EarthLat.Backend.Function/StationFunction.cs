@@ -2,7 +2,6 @@ using AutoMapper;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -23,7 +22,6 @@ namespace EarthLat.Backend.Function
     {
         private readonly ISundialLogic _stationLogic;
         private readonly IMapper _mapper;
-
         private static readonly RemoteConfig exampleConfig = new RemoteConfig
         {
             IsCamOffline = false,
@@ -43,13 +41,19 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetAllStations))]
         [OpenApiOperation(operationId: nameof(GetAllStations), tags: new[] { "Frontend API" }, Summary = "Gets all stations.", Description = "Get all station infos of the available stations.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-function-key", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IEnumerable<StationInfoDto>), Description = "All stations in the system.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<ActionResult<IEnumerable<StationInfoDto>>> GetAllStations(
             [HttpTrigger(AuthorizationLevel.Function, "get","post")] HttpRequestData request)
         {
+
+            var context = JsonConvert.
+                DeserializeObject<Dictionary<string,string>>(
+                    (string)request.FunctionContext.BindingContext.BindingData["Headers"]);
+            var key = context["x-functions-key"];
+
             List<Station> result = (await _stationLogic.GetAllStationsAsync()).ToList();
 
             return result is null || result?.Count < 1 ? new NotFoundResult() : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
@@ -70,6 +74,7 @@ namespace EarthLat.Backend.Function
                                   .BindingContext
                                   .BindingData["id"]
                                   .ToString();
+
             var images = await _stationLogic.GetLatestImagesByIdAsync(id);
 
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgDetail });
@@ -108,6 +113,7 @@ namespace EarthLat.Backend.Function
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
         {
             string requestBody = String.Empty;
+            
             using (StreamReader streamReader = new(request.Body))
             {
                 requestBody = await streamReader.ReadToEndAsync();
