@@ -92,7 +92,7 @@ namespace EarthLat.Backend.Function
         [Function(nameof(PushStationInfos))]
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" }, 
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
-        [OpenApiParameter("stationAbbreviation", In = ParameterLocation.Path)]
+        [OpenApiParameter("stationId", In = ParameterLocation.Path)]
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), 
@@ -100,9 +100,12 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<IActionResult> PushStationInfos(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationAbbreviation}/Push")] HttpRequestData request, string stationAbbreviation)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
-            if(!await _keyManagementService.CheckPermission(request.GetHeaderKey(), stationAbbreviation))
+            var context = JsonConvert.DeserializeObject<Dictionary<string, string>>((string)request.FunctionContext.BindingContext.BindingData["Headers"]);
+            var header = context["Authorization"];
+
+            if (!await _keyManagementService.CheckPermission(request.GetHeaderKey(), stationId))
             {
                 return new UnauthorizedResult();
             }
@@ -117,6 +120,29 @@ namespace EarthLat.Backend.Function
             var remoteConfig = await _stationLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
 
             return new OkObjectResult(remoteConfig);
+        }
+
+        [Function(nameof(GetLatestImageAsPictureById))]
+        [OpenApiOperation(operationId: nameof(GetLatestImageAsPictureById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
+        [OpenApiParameter("imageType", In = ParameterLocation.Path)]
+        [OpenApiParameter("stationId", In = ParameterLocation.Path)]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "Authorization", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "image/jpeg", bodyType: typeof(FileContentResult), Description = "The latest detail image of a station as a picture.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<IActionResult> GetLatestImageAsPictureById(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "GetLatestImageAsPictureById/{imageType}/{stationId}")] HttpRequestData request, string imageType)
+        {
+            string id = request.FunctionContext
+                       .BindingContext
+                       .BindingData["stationId"]
+                       .ToString();
+
+            var images = await _stationLogic.GetLatestImagesByIdAsync(id);
+
+            byte[] image = imageType == "detail" ? images?.ImgDetail : images?.ImgTotal;
+            return image is null ? new NotFoundResult() : new FileContentResult(image, "image/jpeg");
         }
     }
 }
