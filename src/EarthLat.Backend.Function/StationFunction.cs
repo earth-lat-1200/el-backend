@@ -98,7 +98,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), 
             Summary = "The OK response" , Description = "The OK response returns the remotConfig for the specific station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
         public async Task<IActionResult> PushStationInfos(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
