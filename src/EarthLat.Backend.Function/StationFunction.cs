@@ -102,9 +102,6 @@ namespace EarthLat.Backend.Function
         public async Task<IActionResult> PushStationInfos(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
-            var context = JsonConvert.DeserializeObject<Dictionary<string, string>>((string)request.FunctionContext.BindingContext.BindingData["Headers"]);
-            var header = context["Authorization"];
-
             if (!await _keyManagementService.CheckPermission(request.GetHeaderKey(), stationId))
             {
                 return new UnauthorizedResult();
