@@ -19,7 +19,7 @@ namespace EarthLat.Backend.Management.Function
                 .ConfigureOpenApi()
                 .ConfigureServices(s =>
                 {
-                    s.AddEarthLatBackendCore(Environment.GetEnvironmentVariable("TABLE_STORAGE_CONNECTION"));
+                    //s.AddEarthLatBackendCore(Environment.GetEnvironmentVariable("TABLE_STORAGE_CONNECTION"));
                     s.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
                     s.AddLogging(c => c.AddConsole());
 
