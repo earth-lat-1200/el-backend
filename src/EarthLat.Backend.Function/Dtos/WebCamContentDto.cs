@@ -17,5 +17,22 @@
         public string TeamName { get; set; }
         public string NearbyPublicInstitute { get; set; }
         public string OrganizationalForm { get; set; }
+        public Status Status { get; set; }
+    }
+
+    public class Status
+    {
+        public string SwVersion { get; set; }
+        public string CaptureTime { get; set; }
+        public string CaptureLat { get; set; }
+        public string CpuTemparature { get; set; }
+        public string CameraTemparature { get; set; }
+        public string OutcaseTemparature { get; set; }
+        public string Brightness { get; set; }
+        public string Sunny { get; set; }
+        public string Cloudy { get; set; }
+        public string Night { get; set; }
     }
 }
+
+
