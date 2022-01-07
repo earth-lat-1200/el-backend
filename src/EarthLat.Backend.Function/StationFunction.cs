@@ -159,7 +159,7 @@ namespace EarthLat.Backend.Function
             var images = await _stationLogic.GetLatestImagesByIdAsync(id);
             byte[] image = imageType == "detail" ? images?.ImgDetail : images?.ImgTotal;
 
-            return image ?? Array.Empty<byte>();
+          return image ?? Array.Empty<byte>();
         }
     }
 }
