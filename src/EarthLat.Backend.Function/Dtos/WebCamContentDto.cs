@@ -25,13 +25,13 @@
         public string SwVersion { get; set; }
         public string CaptureTime { get; set; }
         public string CaptureLat { get; set; }
-        public string CpuTemparature { get; set; }
-        public string CameraTemparature { get; set; }
-        public string OutcaseTemparature { get; set; }
-        public string Brightness { get; set; }
-        public string Sunny { get; set; }
-        public string Cloudy { get; set; }
-        public string Night { get; set; }
+        public double CpuTemparature { get; set; }
+        public double CameraTemparature { get; set; }
+        public double OutcaseTemparature { get; set; }
+        public double Brightness { get; set; }
+        public bool Sunny { get; set; }
+        public bool Cloudy { get; set; }
+        public bool Night { get; set; }
     }
 }
 
