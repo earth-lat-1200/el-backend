@@ -126,6 +126,24 @@ namespace EarthLat.Backend.Function
             return new OkObjectResult(remoteConfig);
         }
 
+        [Function(nameof(UpdateRemoteConfig))]
+        [OpenApiOperation(operationId: nameof(UpdateRemoteConfig), tags: new[] { "Raspberry Pi API" }, Summary = "Update remote config.", Description = "Update the remote config of a station.")]
+        [OpenApiParameter("stationId", In = ParameterLocation.Path)]
+        [OpenApiRequestBody("applicaton/json", typeof(RemoteConfig), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-function-key", In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), Summary = "The OK response", Description = "The OK response returns the remotConfig for the specific station.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
+        public async Task<ActionResult<RemoteConfig>> UpdateRemoteConfig(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
+        {
+            var remoteConfig = await _stationLogic.GetStationByIdAsync(stationId);
+
+            // TODO Update StationInfo
+
+            return new OkObjectResult(remoteConfig);
+        }
+
         [Function(nameof(GetLatestImageAsPictureById))]
         [OpenApiOperation(operationId: nameof(GetLatestImageAsPictureById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
         [OpenApiParameter("imageType", In = ParameterLocation.Path)]
@@ -135,7 +153,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<IActionResult> GetLatestImageAsPictureById(
+        public async Task<byte[]> GetLatestImageAsPictureById(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "GetLatestImageAsPictureById/{imageType}/{stationId}")] HttpRequestData request, string imageType)
         {
             string id = request.FunctionContext
@@ -146,7 +164,8 @@ namespace EarthLat.Backend.Function
             var images = await _stationLogic.GetLatestImagesByIdAsync(id);
 
             byte[] image = imageType == "detail" ? images?.ImgDetail : images?.ImgTotal;
-            return image is null ? new NotFoundResult() : new FileContentResult(image, "image/jpeg");
+            // TODO
+            return image; //image is null ? new NotFoundResult() : /*new FileContentResult(*/image; //, "image/jpeg");
         }
     }
 }
