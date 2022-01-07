@@ -109,7 +109,8 @@ namespace EarthLat.Backend.Function
         public async Task<IActionResult> PushStationInfos(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
-            if (!await _keyManagementService.CheckPermission(request.GetHeaderKey(), stationId))
+            var header = request.GetHeaderKey();
+            if (!await _keyManagementService.CheckPermission(header, stationId))
             {
                 return new UnauthorizedResult();
             }
@@ -135,7 +136,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
         public async Task<ActionResult<RemoteConfig>> UpdateRemoteConfig(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Update")] HttpRequestData request, string stationId)
         {
             var remoteConfig = await _stationLogic.GetStationByIdAsync(stationId);
 
@@ -149,7 +150,7 @@ namespace EarthLat.Backend.Function
         [OpenApiParameter("imageType", In = ParameterLocation.Path)]
         [OpenApiParameter("stationId", In = ParameterLocation.Path)]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = "x-function-key", In = OpenApiSecurityLocationType.Header)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "image/jpeg", bodyType: typeof(FileContentResult), Description = "The latest detail image of a station as a picture.")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "image/jpeg", bodyType: typeof(byte[]), Description = "The latest detail image of a station as a picture.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
@@ -162,10 +163,9 @@ namespace EarthLat.Backend.Function
                        .ToString();
 
             var images = await _stationLogic.GetLatestImagesByIdAsync(id);
-
             byte[] image = imageType == "detail" ? images?.ImgDetail : images?.ImgTotal;
-            // TODO
-            return image; //image is null ? new NotFoundResult() : /*new FileContentResult(*/image; //, "image/jpeg");
+
+            return image ?? Array.Empty<byte>();
         }
     }
 }
