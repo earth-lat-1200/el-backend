@@ -17,7 +17,6 @@ namespace EarthLat.Backend.Function
             {
                 return null;
             }
-
         }
     }
 }
