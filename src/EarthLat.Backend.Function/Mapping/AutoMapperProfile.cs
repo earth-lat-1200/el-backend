@@ -16,7 +16,7 @@ namespace EarthLat.Backend.Function.Mapping
                 .ForMember(dest => dest.PartitionKey, opt => opt.MapFrom(src => src.StationId));
 
             CreateMap<Station, StationInfoDto>()
-                .ForMember(dest => dest.StationId, opt => opt.MapFrom(src => src.PartitionKey));
+                .ForMember(dest => dest.StationId, opt => opt.MapFrom(src => src.RowKey));
 
             CreateMap<RemoteConfig, RemoteConfigDto>(MemberList.None)
                 .ReverseMap();
