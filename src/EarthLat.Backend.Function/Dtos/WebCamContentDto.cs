@@ -2,6 +2,7 @@
 {
     public class WebCamContentDto
     {
+        
         public byte[] ImgTotal { get; set; }
         public byte[] ImgDetail { get; set; }
         public string StationName { get; set; }

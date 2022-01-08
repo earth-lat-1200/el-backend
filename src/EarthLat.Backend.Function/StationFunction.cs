@@ -3,6 +3,8 @@ using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
+using EarthLat.Backend.Function.Exception;
+using EarthLat.Backend.Function.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -26,17 +28,21 @@ namespace EarthLat.Backend.Function
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
         private readonly KeyManagementService _keyManagementService;
+        private readonly IWebCamContentDtoValidator _webCamContentDtoValidator;
 
         public StationFunction(
             ISundialLogic sundialLogic, 
             IMapper mapper, 
-            IConfiguration configuration, 
-            KeyManagementService keyManagementService)
+            IConfiguration configuration,
+            IWebCamContentDtoValidator webCamContentDtoValidator,
+            KeyManagementService keyManagementService
+            )
         {
             _sundialLogic = sundialLogic ?? throw new ArgumentNullException(nameof(sundialLogic));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _keyManagementService = keyManagementService ?? throw new ArgumentNullException(nameof(keyManagementService));
+            this._webCamContentDtoValidator = webCamContentDtoValidator ?? throw new ArgumentNullException(nameof(webCamContentDtoValidator));
         }
 
         [Function(nameof(GetAllStations))]
@@ -126,6 +132,21 @@ namespace EarthLat.Backend.Function
             }
 
             var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
+
+            if(webCamContent.StationId != stationId)
+            {
+                return new BadRequestResult();
+            }
+            try
+            {
+                _webCamContentDtoValidator.IsValid(webCamContent);
+                _webCamContentDtoValidator.IsValid(webCamContent.Status);
+            }
+            catch (ValidationException e)
+            {
+                return new BadRequestObjectResult(e.Message);
+            }
+
             var remoteConfig = await _sundialLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
 
             return new OkObjectResult(remoteConfig);
@@ -154,7 +175,7 @@ namespace EarthLat.Backend.Function
             {
                 requestBody = await streamReader.ReadToEndAsync();
             }
-
+           
             var remoteConfigDto = JsonConvert.DeserializeObject<RemoteConfigDto>(requestBody);
             var remoteConfig = await _sundialLogic.AddOrUpdateRemoteConfigAsync(_mapper.Map<RemoteConfig>(remoteConfigDto), stationId);
 
