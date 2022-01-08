@@ -122,7 +122,7 @@ namespace EarthLat.Backend.Function
             
             if (!await _keyManagementService.CheckPermission(header, stationId))
             {
-                return new ForbidResult();
+                return new UnauthorizedResult();
             }
 
             string requestBody = string.Empty;
