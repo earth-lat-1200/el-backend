@@ -33,34 +33,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<Images> GetLatestImagesByIdAsync(string stationId)
         {
             _tableStorageService.Init("stations");
-            var station = await _tableStorageService.GetByFilterAsync<Station>($"PartitionKey eq '{stationId}'");
+            var station = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{stationId}'");
             var images = new List<Images>();
             if (station.Any())
             {
                 var currentStation = station.First();
                 _tableStorageService.Init("images");
                 images = (await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and RowKey eq '{currentStation.LastImageKey}'")).ToList();
-            }
-
-            return images.FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Gets the lastest images of a station by angles.
-        /// </summary>
-        /// <param name="longitude">The longitude.</param>
-        /// <param name="latitude">The latitude.</param>
-        /// <returns></returns>
-        public async Task<Images> GetLatestImagesByAnglesAsync(string longitude, string latitude)
-        {
-            _tableStorageService.Init("stations");
-            var station = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{longitude}_{latitude}'");
-            var images = new List<Images>();
-            if (station.Any())
-            {
-                var currentStation = station.First();
-                _tableStorageService.Init("images");
-                images = (await _tableStorageService.GetByFilterAsync<Images>($"RowKey eq '{currentStation.LastImageKey}'")).ToList();
             }
 
             return images.FirstOrDefault();
@@ -74,21 +53,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<Station> GetStationByIdAsync(string stationId)
         {
             _tableStorageService.Init("stations");
-            
-            var result = await _tableStorageService.GetByFilterAsync<Station>($"PartitionKey eq '{stationId}'");
-            return result.FirstOrDefault();
-        }
 
-        /// <summary>
-        /// Gets a station by the angles (longitude, latitude).
-        /// </summary>
-        /// <param name="longitude">The longitude.</param>
-        /// <param name="latitude">The latitude.</param>
-        /// <returns></returns>
-        public async Task<Station> GetStationByAnglesAsync(string longitude, string latitude)
-        {
-            _tableStorageService.Init("stations");
-            var result = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{longitude}_{latitude}'");
+            var result = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{stationId}'");
             return result.FirstOrDefault();
         }
 

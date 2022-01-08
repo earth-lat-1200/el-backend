@@ -6,9 +6,7 @@ namespace EarthLat.Backend.Core.Interfaces
     {
         Task<IEnumerable<Station>> GetAllStationsAsync();
         Task<Images> GetLatestImagesByIdAsync(string stationId);
-        Task<Images> GetLatestImagesByAnglesAsync(string longitude, string latitude);
         Task<Station> GetStationByIdAsync(string stationId);
-        Task<Station> GetStationByAnglesAsync(string longitude, string latitude);
         Task<RemoteConfig> AddAsync(Station station, Images images);
         Task<RemoteConfig> AddOrUpdateRemoteConfigAsync(RemoteConfig remoteConfig, string stationId);
         Task<RemoteConfig?> GetRemoteConfigById(string stationId);
