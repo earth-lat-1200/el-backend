@@ -10,5 +10,7 @@ namespace EarthLat.Backend.Core.Interfaces
         Task<Station> GetStationByIdAsync(string stationId);
         Task<Station> GetStationByAnglesAsync(string longitude, string latitude);
         Task<RemoteConfig> AddAsync(Station station, Images images);
+        Task<RemoteConfig> AddOrUpdateRemoteConfigAsync(RemoteConfig remoteConfig, string stationId);
+        Task<RemoteConfig?> GetRemoteConfigById(string stationId);
     }
 }

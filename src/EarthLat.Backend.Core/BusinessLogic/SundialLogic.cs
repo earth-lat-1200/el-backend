@@ -74,6 +74,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<Station> GetStationByIdAsync(string stationId)
         {
             _tableStorageService.Init("stations");
+            
             var result = await _tableStorageService.GetByFilterAsync<Station>($"PartitionKey eq '{stationId}'");
             return result.FirstOrDefault();
         }
@@ -109,16 +110,51 @@ namespace EarthLat.Backend.Core.BusinessLogic
             _tableStorageService.Init("images");
             await _tableStorageService.AddAsync(images);
 
-            return new RemoteConfig()
+            var config = await GetRemoteConfigById(station.PartitionKey);
+
+            if (config is null)
             {
-                IsCamOffline = false,
-                IsSeries = false,
-                IsZoomDrawRect = false,
-                IsZoomMove = false,
-                Period = new TimeSpan(0, 2, 0),
-                ZoomCenterPerCX = 0,
-                ZoomCenterPerCy = 0,
-            };
+                var defaultConfig = new RemoteConfig()
+                {
+                    IsCamOffline = false,
+                    IsSeries = false,
+                    IsZoomDrawRect = false,
+                    IsZoomMove = false,
+                    Period = new TimeSpan(0, 2, 0),
+                    ZoomCenterPerCX = 0,
+                    ZoomCenterPerCy = 0,
+                };
+
+                config = await AddOrUpdateRemoteConfigAsync(defaultConfig, station.PartitionKey);
+            }
+
+            return config;
+        }
+
+        /// <summary>
+        /// Adds a new or updates an existing station remote config entry. 
+        /// </summary>
+        /// <param name="remoteConfig">The remote config to add or udpate.</param>
+        /// <param name="stationId">The station id.</param>
+        /// <returns></returns>
+        public async Task<RemoteConfig> AddOrUpdateRemoteConfigAsync(RemoteConfig remoteConfig, string stationId)
+        {
+            remoteConfig.SetRemoteConfigKeys(stationId);
+            _tableStorageService.Init("remoteconfigs");
+            await _tableStorageService.AddOrUpdateAsync(remoteConfig);
+            return remoteConfig;
+        }
+
+        /// <summary>
+        /// Get a station remote config by a station id.
+        /// </summary>
+        /// <param name="stationId">The station id.</param>
+        /// <returns></returns>
+        public async Task<RemoteConfig?> GetRemoteConfigById(string stationId)
+        {
+            _tableStorageService.Init("remoteconfigs");
+            var result = await _tableStorageService.GetByFilterAsync<RemoteConfig>($"PartitionKey eq '{stationId}' and RowKey eq '{stationId}{ModelsExtensions.RemoteConfigRowKeyPostfix}'");
+            return result.FirstOrDefault();
         }
     }
 }

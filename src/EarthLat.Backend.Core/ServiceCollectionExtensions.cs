@@ -3,7 +3,6 @@ using EarthLat.Backend.Core.Exceptions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.TableStorage;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EarthLat.Backend.Core
@@ -31,7 +30,6 @@ namespace EarthLat.Backend.Core
             services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));
 
             services.AddHttpClient();
-            services.AddSingleton<IAdminLogic, AdminLogic>();
             var provider = services.BuildServiceProvider();
 
             services.AddSingleton(new KeyManagementService(provider.GetRequiredService<HttpClient>(), functionKey, functionUrl));
