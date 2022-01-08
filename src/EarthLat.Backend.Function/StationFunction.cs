@@ -106,7 +106,7 @@ namespace EarthLat.Backend.Function
             var header = request.GetHeaderKey();
             if (!await _keyManagementService.CheckPermission(header, stationId))
             {
-                return new UnauthorizedResult();
+                return new ForbidResult();
             }
 
             string requestBody = string.Empty;
