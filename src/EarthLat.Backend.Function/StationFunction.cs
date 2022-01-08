@@ -133,7 +133,7 @@ namespace EarthLat.Backend.Function
 
             var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
 
-            if(webCamContent.StationId != stationId)
+            if(webCamContent.StationId.ToLower() != stationId.ToLower())
             {
                 return new BadRequestResult();
             }
