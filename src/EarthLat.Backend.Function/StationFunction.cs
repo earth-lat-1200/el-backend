@@ -27,7 +27,11 @@ namespace EarthLat.Backend.Function
         private readonly IConfiguration _configuration;
         private readonly KeyManagementService _keyManagementService;
 
-        public StationFunction(ISundialLogic stationLogic, IMapper mapper, IConfiguration configuration, KeyManagementService keyManagementService)
+        public StationFunction(
+            ISundialLogic stationLogic, 
+            IMapper mapper, 
+            IConfiguration configuration, 
+            KeyManagementService keyManagementService)
         {
             _stationLogic = stationLogic ?? throw new ArgumentNullException(nameof(stationLogic));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -42,7 +46,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<ActionResult<IEnumerable<StationInfoDto>>> GetAllStations(
-            [HttpTrigger(AuthorizationLevel.Function, "get","post")] HttpRequestData request)
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
             List<Station> result = (await _stationLogic.GetAllStationsAsync()).ToList();
 

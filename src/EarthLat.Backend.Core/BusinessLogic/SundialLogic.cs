@@ -109,7 +109,16 @@ namespace EarthLat.Backend.Core.BusinessLogic
             _tableStorageService.Init("images");
             await _tableStorageService.AddAsync(images);
 
-            return new RemoteConfig();
+            return new RemoteConfig()
+            {
+                IsCamOffline = false,
+                IsSeries = false,
+                IsZoomDrawRect = false,
+                IsZoomMove = false,
+                Period = new TimeSpan(0, 2, 0),
+                ZoomCenterPerCX = 0,
+                ZoomCenterPerCy = 0,
+            };
         }
     }
 }
