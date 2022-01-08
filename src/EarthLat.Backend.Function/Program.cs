@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using Microsoft.Extensions.Logging;
 using EarthLat.Backend.Core;
+using EarthLat.Backend.Function.Extension;
 
 namespace EarthLat.Backend.Function
 {
@@ -25,7 +26,7 @@ namespace EarthLat.Backend.Function
                         Environment.GetEnvironmentVariable("FUNCTION_URL"));
                     s.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
                     s.AddLogging(c => c.AddConsole());
-
+                    s.AddValidation();
                 })
                 .Build();
 

@@ -19,10 +19,9 @@ namespace EarthLat.Backend.Core.Models
         public string? OrganizationalForm { get; set; }
         public string LastImageKey { get; set; }
 
-        // StationId
-        public string PartitionKey { get; set; }
+        public string PartitionKey { get; set; } = "station";
 
-        // Longitude_Latitude
+        // StationId
         public string RowKey { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
         public ETag ETag { get; set; }

@@ -11,7 +11,7 @@ namespace EarthLat.Backend.Function
             try
             {
                 var context = JsonConvert.DeserializeObject<Dictionary<string, string>>((string)request.FunctionContext.BindingContext.BindingData["Headers"]);
-                return context["x-function-key"];
+                return context[Application.FunctionsKeyHeader];
             }
             catch (System.Exception)
             {
