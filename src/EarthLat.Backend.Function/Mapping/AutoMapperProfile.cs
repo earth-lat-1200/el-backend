@@ -10,7 +10,7 @@ namespace EarthLat.Backend.Function.Mapping
         public AutoMapperProfile()
         {
             CreateMap<WebCamContentDto, Station>()
-                .ForMember(dest => dest.PartitionKey, opt => opt.MapFrom(src => src.StationId));
+                .ForMember(dest => dest.RowKey, opt => opt.MapFrom(src => src.StationId));
 
             CreateMap<WebCamContentDto, Images>()
                 .ForMember(dest => dest.PartitionKey, opt => opt.MapFrom(src => src.StationId));

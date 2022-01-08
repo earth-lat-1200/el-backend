@@ -6,10 +6,10 @@ namespace EarthLat.Backend.Core.Extensions
     {
         public static string RemoteConfigRowKeyPostfix = "_config";
 
-        internal static void SetStationRowKey(this Station station)
-        {
-            station.RowKey = $"{station.Longitude}_{station.Latitude}";
-        }
+        //internal static void SetStationRowKey(this Station station)
+        //{
+        //    station.RowKey = $"{station.Longitude}_{station.Latitude}";
+        //}
 
         internal static void SetImagesRowKey(this Images images)
         {
