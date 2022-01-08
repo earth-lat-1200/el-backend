@@ -102,7 +102,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             images.SetImagesRowKey();
             station.LastImageKey = images.RowKey;
-            station.SetStationRowKey();
 
             _tableStorageService.Init("stations");
             await _tableStorageService.AddOrUpdateAsync(station);
@@ -110,7 +109,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             _tableStorageService.Init("images");
             await _tableStorageService.AddAsync(images);
 
-            var config = await GetRemoteConfigById(station.PartitionKey);
+            var config = await GetRemoteConfigById(station.RowKey);
 
             if (config is null)
             {
@@ -125,7 +124,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     ZoomCenterPerCy = 0,
                 };
 
-                config = await AddOrUpdateRemoteConfigAsync(defaultConfig, station.PartitionKey);
+                config = await AddOrUpdateRemoteConfigAsync(defaultConfig, station.RowKey);
             }
 
             return config;
