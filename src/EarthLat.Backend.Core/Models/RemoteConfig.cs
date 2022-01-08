@@ -6,7 +6,7 @@ namespace EarthLat.Backend.Core.Models
     public class RemoteConfig : ITableEntity
     {
         public bool IsCamOffline { get; set; }
-        public TimeSpan Period { get; set; }
+        public int Period { get; set; }
         public bool IsSeries { get; set; }
         public bool IsZoomMove { get; set; }
         public bool IsZoomDrawRect { get; set; }

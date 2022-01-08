@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
+using System;
 
 namespace EarthLat.Backend.Function.Mapping
 {
@@ -17,7 +18,7 @@ namespace EarthLat.Backend.Function.Mapping
             CreateMap<Station, StationInfoDto>()
                 .ForMember(dest => dest.StationId, opt => opt.MapFrom(src => src.PartitionKey));
 
-            CreateMap<RemoteConfig, RemoteConfigDto>()
+            CreateMap<RemoteConfig, RemoteConfigDto>(MemberList.None)
                 .ReverseMap();
         }
     }

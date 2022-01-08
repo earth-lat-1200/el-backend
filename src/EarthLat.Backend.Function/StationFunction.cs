@@ -108,9 +108,15 @@ namespace EarthLat.Backend.Function
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
             var header = request.GetHeaderKey();
+            if (header is null)
+            {
+                return new BadRequestResult();
+            }
+
+            
             if (!await _keyManagementService.CheckPermission(header, stationId))
             {
-                return new ForbidResult();
+                return new UnauthorizedResult();
             }
 
             string requestBody = string.Empty;

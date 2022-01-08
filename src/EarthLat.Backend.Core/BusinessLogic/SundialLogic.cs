@@ -120,7 +120,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     IsSeries = false,
                     IsZoomDrawRect = false,
                     IsZoomMove = false,
-                    Period = new TimeSpan(0, 2, 0),
+                    Period = 2,
                     ZoomCenterPerCX = 0,
                     ZoomCenterPerCy = 0,
                 };
