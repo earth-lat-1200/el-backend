@@ -39,4 +39,4 @@ jobs:
           app-name: 'earth-lat-1200'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_51A1EDBE46A946DDB69C18ED673E9B95 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F043AD8A828C45EA9DD92E3ED66A2ED9 }}
