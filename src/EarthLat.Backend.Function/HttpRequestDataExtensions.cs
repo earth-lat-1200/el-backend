@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Functions.Worker.Http;
+﻿using EarthLat.Backend.Core.Exceptions;
+using Microsoft.Azure.Functions.Worker.Http;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -15,7 +16,7 @@ namespace EarthLat.Backend.Function
             }
             catch (System.Exception)
             {
-                return null;
+                throw new DataProcessException("Header is missing.");
             }
         }
     }

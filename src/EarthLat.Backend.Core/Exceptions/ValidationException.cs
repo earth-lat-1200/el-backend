@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace EarthLat.Backend.Function.Exception
+namespace EarthLat.Backend.Core.Exceptions
 {
 
     [Serializable]
@@ -22,11 +22,9 @@ namespace EarthLat.Backend.Function.Exception
         {
             get
             {
-                if (String.IsNullOrWhiteSpace(_nestedProperty))
-                {
-                    return base.Message;
-                }
-                return base.Message + $" (Nested property: {_nestedProperty})";
+                return String.IsNullOrWhiteSpace(_nestedProperty) 
+                    ? base.Message 
+                    : base.Message + $" (Nested property: {_nestedProperty})";
             }
         }
     }

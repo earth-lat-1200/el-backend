@@ -1,4 +1,4 @@
-﻿using EarthLat.Backend.Function.Exception;
+﻿using EarthLat.Backend.Core.Exceptions;
 
 namespace EarthLat.Backend.Function.Extension
 {
