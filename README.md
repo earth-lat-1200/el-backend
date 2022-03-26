@@ -1,4 +1,4 @@
-# Earth LAT 1200 backend services
+# Earth LAT 1200 backend service
 Provides the whole business logic for the sundial frontend.
 
 ## EarthLat.Backend.Core
