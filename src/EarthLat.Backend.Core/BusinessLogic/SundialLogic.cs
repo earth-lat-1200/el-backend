@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace EarthLat.Backend.Core.BusinessLogic
 {
+    /// <summary>
+    /// Logic which handles all the logic cases for sundial management.
+    /// </summary>
     public class SundialLogic : ISundialLogic
     {
         private readonly ILogger<ISundialLogic> logger;

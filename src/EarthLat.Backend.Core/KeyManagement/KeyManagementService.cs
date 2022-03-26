@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using EarthLat.Backend.Core.Exceptions;
+using Newtonsoft.Json;
 
 namespace EarthLat.Backend.Core.KeyManagement
 {
@@ -53,7 +54,7 @@ namespace EarthLat.Backend.Core.KeyManagement
                 }
             }
 
-            return _keymap[key].ToLower() == stationAbbreviation.ToLower();
+            return _keymap[key].ToLower() == stationAbbreviation.ToLower() ? true : throw new UnauthorizedException();
         }
 
         private class FunctionKeysResponseDto

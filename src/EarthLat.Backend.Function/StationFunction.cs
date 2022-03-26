@@ -1,9 +1,9 @@
 using AutoMapper;
+using EarthLat.Backend.Core.Exceptions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
-using EarthLat.Backend.Function.Exception;
 using EarthLat.Backend.Function.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -56,48 +56,9 @@ namespace EarthLat.Backend.Function
         {
             List<Station> result = (await _sundialLogic.GetAllStationsAsync()).ToList();
 
-            return result is null || result?.Count < 1 ? new NotFoundResult() : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
-        }
-
-        [Function(nameof(GetLatestDetailImageById))]
-        [OpenApiOperation(operationId: nameof(GetLatestDetailImageById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
-        [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest detail image of a station.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<IActionResult> GetLatestDetailImageById(
-            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
-        {
-            string id = request.FunctionContext
-                                  .BindingContext
-                                  .BindingData["id"]
-                                  .ToString();
-
-            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
-
-            return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgDetail });
-        }
-
-        [Function(nameof(GetLatestTotalImageById))]
-        [OpenApiOperation(operationId: nameof(GetLatestTotalImageById), tags: new[] { "Frontend API" }, Summary = "Gets current total image by stationId.", Description = "Get the latest created total image of a station.")]
-        [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest total image of a station.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<ImgDto>> GetLatestTotalImageById(
-            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
-        {
-            string id = request.FunctionContext
-                                   .BindingContext
-                                   .BindingData["id"]
-                                   .ToString();
-            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
-
-            return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgTotal });
+            return result is null || result?.Count < 1 
+                ? new NotFoundResult() 
+                : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
         }
 
         [Function(nameof(PushStationInfos))]
@@ -113,43 +74,33 @@ namespace EarthLat.Backend.Function
         public async Task<IActionResult> PushStationInfos(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
-            var header = request.GetHeaderKey();
-            if (header is null)
-            {
-                return new BadRequestResult();
-            }
-
-            
-            if (!await _keyManagementService.CheckPermission(header, stationId))
-            {
-                return new UnauthorizedResult();
-            }
-
-            string requestBody = string.Empty;
-            using (StreamReader streamReader = new(request.Body))
-            {
-                requestBody = await streamReader.ReadToEndAsync();
-            }
-
-            var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
-
-            if(webCamContent.StationId.ToLower() != stationId.ToLower())
-            {
-                return new BadRequestResult();
-            }
             try
             {
+                var header = request.GetHeaderKey();
+                await _keyManagementService.CheckPermission(header, stationId);
+
+                string requestBody = string.Empty;
+                using (StreamReader streamReader = new(request.Body))
+                    requestBody = await streamReader.ReadToEndAsync();
+
+                var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
+
+                if (webCamContent.StationId.ToLower() != stationId.ToLower())
+                {
+                    throw new DataProcessException("Station id check failed.");
+                }
+
                 _webCamContentDtoValidator.IsValid(webCamContent);
                 _webCamContentDtoValidator.IsValid(webCamContent.Status);
-            }
-            catch (ValidationException e)
-            {
-                return new BadRequestObjectResult(e.Message);
-            }
 
-            var remoteConfig = await _sundialLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
+                var remoteConfig = await _sundialLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
 
-            return new OkObjectResult(remoteConfig);
+                return new OkObjectResult(remoteConfig);
+            }
+            catch (ValidationException e) { return new BadRequestObjectResult(e.Message); }
+            catch (UnauthorizedException) { return new UnauthorizedResult(); }
+            catch (DataProcessException e) { return new BadRequestObjectResult(e.Message); }
+            catch (Exception e) { return new ConflictObjectResult(e.Message); }
         }
 
         [Function(nameof(UpdateRemoteConfig))]
