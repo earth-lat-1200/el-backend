@@ -118,8 +118,8 @@ namespace EarthLat.Backend.Function
             {
                 return new BadRequestResult();
             }
-
             
+            // Key Management
             if (!await _keyManagementService.CheckPermission(header, stationId))
             {
                 return new UnauthorizedResult();
