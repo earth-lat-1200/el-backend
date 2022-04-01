@@ -20,20 +20,6 @@
         public string OrganizationalForm { get; set; }
         public Status Status { get; set; }
     }
-
-    public class Status
-    {
-        public string SwVersion { get; set; }
-        public string CaptureTime { get; set; }
-        public string CaptureLat { get; set; }
-        public double CpuTemparature { get; set; }
-        public double CameraTemparature { get; set; }
-        public double OutcaseTemparature { get; set; }
-        public double Brightness { get; set; }
-        public bool Sunny { get; set; }
-        public bool Cloudy { get; set; }
-        public bool Night { get; set; }
-    }
 }
 
 
