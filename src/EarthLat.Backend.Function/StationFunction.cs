@@ -155,6 +155,47 @@ namespace EarthLat.Backend.Function
 
             return image ?? Array.Empty<byte>();
         }
+
+        [Function(nameof(GetLatestDetailImageById))]
+        [OpenApiOperation(operationId: nameof(GetLatestDetailImageById), tags: new[] { "Frontend API" }, Summary = "Gets current image detail by stationId.", Description = "Get the latest created detail image of a station.")]
+        [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest detail image of a station.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<IActionResult> GetLatestDetailImageById(
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
+        {
+            string id = request.FunctionContext
+                                  .BindingContext
+                                  .BindingData["id"]
+                                  .ToString();
+
+            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
+
+            return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgDetail });
+        }
+
+        [Function(nameof(GetLatestTotalImageById))]
+        [OpenApiOperation(operationId: nameof(GetLatestTotalImageById), tags: new[] { "Frontend API" }, Summary = "Gets current total image by stationId.", Description = "Get the latest created total image of a station.")]
+        [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest total image of a station.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<ActionResult<ImgDto>> GetLatestTotalImageById(
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
+        {
+            string id = request.FunctionContext
+                                   .BindingContext
+                                   .BindingData["id"]
+                                   .ToString();
+            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
+
+            return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgTotal });
+        }
     }
 }
 
