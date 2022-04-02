@@ -198,18 +198,30 @@ namespace EarthLat.Backend.Function
         }
 
         [Function(nameof(CleanUp))]
-        [OpenApiOperation(operationId: nameof(CleanUp), tags: new[] { "Frontend API" }, Summary = "Gets current total image by stationId.", Description = "Get the latest created total image of a station.")]
+        [OpenApiRequestBody("applicaton/json", typeof(CleanUpDto), Description = "Contains the timestamp for the clean up process and the optional station id.")]
+        [OpenApiOperation(operationId: nameof(CleanUp), tags: new[] { "Frontend API" }, Summary = "Clean up images store.", Description = "Clean up.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest total image of a station.")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "Deletion count.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         public async Task<IActionResult> CleanUp(
-    [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "CleanUp")] HttpRequestData request)
         {
-            await _sundialLogic.CleanUp();
+            try
+            {
+                string requestBody = string.Empty;
+                using (StreamReader streamReader = new(request.Body))
+                {
+                    requestBody = await streamReader.ReadToEndAsync();
+                }
 
-            return new OkResult();
+                var cleanUp = JsonConvert.DeserializeObject<CleanUpDto>(requestBody);
+                var count = await _sundialLogic.CleanUp(cleanUp.DeleteAllBeforeTimestamp, cleanUp.StationId);
+
+                return new OkObjectResult($"{count} elements deleted.");
+            }
+            catch (Exception e) { return new ConflictObjectResult(e.Message); }
         }
     }
 }

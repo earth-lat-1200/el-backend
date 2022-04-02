@@ -10,6 +10,6 @@ namespace EarthLat.Backend.Core.Interfaces
         Task<RemoteConfig> AddAsync(Station station, Images images);
         Task<RemoteConfig> AddOrUpdateRemoteConfigAsync(RemoteConfig remoteConfig, string stationId);
         Task<RemoteConfig?> GetRemoteConfigById(string stationId);
-        Task CleanUp();
+        Task<int> CleanUp(DateTime deleteAllBeforeTimestamp, string stationId = "");
     }
 }
