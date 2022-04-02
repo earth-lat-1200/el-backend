@@ -124,5 +124,14 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var result = await _tableStorageService.GetByFilterAsync<RemoteConfig>($"PartitionKey eq '{stationId}' and RowKey eq '{stationId}{ModelsExtensions.RemoteConfigRowKeyPostfix}'");
             return result.FirstOrDefault();
         }
+
+        public async Task CleanUp()
+        {
+            DateTime timestamp = new DateTime(2022, 03, 31);
+            _tableStorageService.Init("images");
+            var result = await _tableStorageService.GetByFilterAsync<RemoteConfig>($"Timestamp gt datetime({timestamp})");
+
+
+        }
     }
 }

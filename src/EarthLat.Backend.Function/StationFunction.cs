@@ -196,6 +196,21 @@ namespace EarthLat.Backend.Function
 
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgTotal });
         }
+
+        [Function(nameof(CleanUp))]
+        [OpenApiOperation(operationId: nameof(CleanUp), tags: new[] { "Frontend API" }, Summary = "Gets current total image by stationId.", Description = "Get the latest created total image of a station.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImgDto), Description = "The latest total image of a station.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<IActionResult> CleanUp(
+    [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+        {
+            await _sundialLogic.CleanUp();
+
+            return new OkResult();
+        }
     }
 }
 
