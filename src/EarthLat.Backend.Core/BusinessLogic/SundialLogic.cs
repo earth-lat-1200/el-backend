@@ -124,5 +124,30 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var result = await _tableStorageService.GetByFilterAsync<RemoteConfig>($"PartitionKey eq '{stationId}' and RowKey eq '{stationId}{ModelsExtensions.RemoteConfigRowKeyPostfix}'");
             return result.FirstOrDefault();
         }
+
+        /// <summary>
+        /// Clean up images store.
+        /// </summary>
+        /// <param name="deleteAllBeforeTimestamp">All entries before and on this date will be deleted.</param>
+        /// <param name="stationId">Optional stationId, to delete images of a specific station.</param>
+        /// <returns></returns>
+        public async Task<int> CleanUp(DateTime deleteAllBeforeTimestamp, string stationId = "")
+        {
+            var timestamp = new DateTimeOffset(deleteAllBeforeTimestamp.AddDays(1));
+            _tableStorageService.Init("images");
+            int count = 0;
+
+            IEnumerable<Images>? result = string.IsNullOrWhiteSpace(stationId)
+                ? await _tableStorageService.GetByFilterAsync<Images>($"Timestamp le datetime'{timestamp:yyyy-MM-ddThh:mm:ssZ}'")
+                : await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and Timestamp lt datetime'{timestamp:yyyy-MM-ddThh:mm:ssZ}'");
+
+            foreach (Images image in result)
+            {
+                await _tableStorageService.DeleteAsync<Images>(image.PartitionKey, image.RowKey);
+                count++;
+            }
+
+            return count;
+        }
     }
 }
