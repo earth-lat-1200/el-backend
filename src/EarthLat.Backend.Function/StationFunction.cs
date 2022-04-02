@@ -51,6 +51,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IEnumerable<StationInfoDto>), Description = "All stations in the system.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<ActionResult<IEnumerable<StationInfoDto>>> GetAllStations(
             [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
@@ -71,6 +72,7 @@ namespace EarthLat.Backend.Function
             Summary = "The OK response" , Description = "The OK response returns the remotConfig for the specific station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<IActionResult> PushStationInfos(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Push")] HttpRequestData request, string stationId)
         {
@@ -111,6 +113,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfigDto), Summary = "The OK response", Description = "The OK response returns the remotConfig for the specific station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<ActionResult<RemoteConfigDto>> UpdateRemoteConfig(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "{stationId}/Update")] HttpRequestData request, string stationId)
         {
@@ -142,6 +145,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<byte[]> GetLatestImageAsPictureById(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "GetLatestImageAsPictureById/{imageType}/{stationId}")] HttpRequestData request, string imageType)
         {
@@ -164,6 +168,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<IActionResult> GetLatestDetailImageById(
             [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
@@ -185,6 +190,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<ActionResult<ImgDto>> GetLatestTotalImageById(
             [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
