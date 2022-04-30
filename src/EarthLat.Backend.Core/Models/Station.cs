@@ -7,6 +7,7 @@ namespace EarthLat.Backend.Core.Models
     {
         public string? StationName { get; set; }
         public string? SundialName { get; set; }
+        public bool IsActive { get; set; } = true;
         public string? Location { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }

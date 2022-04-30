@@ -25,7 +25,9 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<IEnumerable<Station>> GetAllStationsAsync()
         {
             _tableStorageService.Init("stations");
-            return await _tableStorageService.GetAllAsync<Station>();
+            var stations = (await _tableStorageService.GetAllAsync<Station>()).ToList();
+            stations.RemoveAll(x => !x.IsActive);
+            return stations;
         }
 
         /// <summary>
