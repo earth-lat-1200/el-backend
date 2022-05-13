@@ -5,8 +5,11 @@ name: Build and deploy dotnet core app to Azure Function App - earth-lat-1200-st
 
 on:
   push:
-    branches:
-      - main
+    branches:    
+      - '*'         # matches every branch that doesn't contain a '/'
+      - '*/*'       # matches every branch containing a single '/'
+      - '**'        # matches every branch
+      - '!main'   # excludes master
   workflow_dispatch:
 
 env:
