@@ -103,6 +103,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 images.ImgTotal = CompressionHelper.CompressBytes(images.ImgTotal);
                 images.ImgTotalCompressedKb = images.ImgTotal.Length;
             }
+
  
             await _tableStorageService.AddAsync(images);
 
