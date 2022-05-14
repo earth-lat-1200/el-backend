@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using EarthLat.Backend.Core.Compression;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
@@ -51,15 +51,28 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
             if(image?.ImgTotal is not null)
             {
+                if(image.ImgTotalv2 is not null)
+                {
+                    image.ImgTotal = Combine(image.ImgTotal, image.ImgTotalv2);
+                }
                 image.ImgTotal = CompressionHelper.DecompressBytes(image.ImgTotal);
             }
 
             if (image?.ImgDetail is not null)
             {
+                if (image.ImgDetailv2 is not null)
+                {
+                    image.ImgDetail = Combine(image.ImgDetail, image.ImgDetailv2);
+                }
                 image.ImgDetail = CompressionHelper.DecompressBytes(image.ImgDetail);
             }
 
             return image;
+        }
+
+        private static byte[] Combine(byte[] first, byte[] second)
+        {
+            return first.Concat(second).ToArray();
         }
 
         /// <summary>
@@ -96,14 +109,31 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 images.ImgDetailKb = images.ImgDetail.Length;
                 images.ImgDetail = CompressionHelper.CompressBytes(images.ImgDetail);
                 images.ImgDetailCompressedKb = images.ImgDetail.Length;
+
+                if (images.ImgDetailCompressedKb > 62000)
+                {
+                    var temp = images.ImgDetail;
+                    var firstPart = images.ImgDetailCompressedKb / 2;
+                    var secondPart = images.ImgDetailCompressedKb - firstPart;
+                    images.ImgDetail = temp.Take(firstPart).ToArray();
+                    images.ImgDetailv2 = temp.Skip(firstPart).Take(secondPart).ToArray();
+                }
             }
             if (images?.ImgTotal is not null)
             {
                 images.ImgTotalKb = images.ImgTotal.Length;
                 images.ImgTotal = CompressionHelper.CompressBytes(images.ImgTotal);
                 images.ImgTotalCompressedKb = images.ImgTotal.Length;
-            }
 
+                if (images.ImgTotalCompressedKb > 62000)
+                {
+                    var temp = images.ImgTotal;
+                    var firstPart = images.ImgTotalCompressedKb / 2;
+                    var secondPart = images.ImgTotalCompressedKb - firstPart;
+                    images.ImgTotal = temp.Take(firstPart).ToArray();
+                    images.ImgTotalv2 = temp.Skip(firstPart).Take(secondPart).ToArray();
+                }
+            }
  
             await _tableStorageService.AddAsync(images);
 

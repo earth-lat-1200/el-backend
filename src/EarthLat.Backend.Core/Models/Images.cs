@@ -7,7 +7,14 @@ namespace EarthLat.Backend.Core.Models
     public class Images : ITableEntity
     {
         public byte[]? ImgTotal { get; set; }
+        public byte[]? ImgTotalv2 { get; set; }
         public byte[]? ImgDetail { get; set; }
+        public byte[]? ImgDetailv2 { get; set; }
+
+        public int ImgTotalKb { get; set; }
+        public int ImgDetailKb { get; set; }
+        public int ImgTotalCompressedKb { get; set; }
+        public int ImgDetailCompressedKb { get; set; }
 
         public int ImgTotalKb { get; set; }
         public int ImgDetailKb { get; set; }
