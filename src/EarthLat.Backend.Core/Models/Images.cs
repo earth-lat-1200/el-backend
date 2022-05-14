@@ -16,6 +16,11 @@ namespace EarthLat.Backend.Core.Models
         public int ImgTotalCompressedKb { get; set; }
         public int ImgDetailCompressedKb { get; set; }
 
+        public int ImgTotalKb { get; set; }
+        public int ImgDetailKb { get; set; }
+        public int ImgTotalCompressedKb { get; set; }
+        public int ImgDetailCompressedKb { get; set; }
+
         // StationId
         public string PartitionKey { get; set; }
 
