@@ -93,12 +93,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
             if (images?.ImgDetail is not null)
             {
+                images.ImgDetailKb = images.ImgDetail.Length;
                 images.ImgDetail = CompressionHelper.CompressBytes(images.ImgDetail);
+                images.ImgDetailCompressedKb = images.ImgDetail.Length;
             }
             if (images?.ImgTotal is not null)
             {
+                images.ImgTotalKb = images.ImgTotal.Length;
                 images.ImgTotal = CompressionHelper.CompressBytes(images.ImgTotal);
+                images.ImgTotalCompressedKb = images.ImgTotal.Length;
             }
+
  
             await _tableStorageService.AddAsync(images);
 
