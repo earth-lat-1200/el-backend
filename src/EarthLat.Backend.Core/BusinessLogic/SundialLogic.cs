@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using EarthLat.Backend.Core.Compression;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
