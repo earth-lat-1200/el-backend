@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using EarthLat.Backend.Core.Compression;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
@@ -46,8 +47,19 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 _tableStorageService.Init("images");
                 images = (await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and RowKey eq '{currentStation.LastImageKey}'")).ToList();
             }
+            var image = images.FirstOrDefault();
 
-            return images.FirstOrDefault();
+            if(image?.ImgTotal is not null)
+            {
+                image.ImgTotal = CompressionHelper.DecompressBytes(image.ImgTotal);
+            }
+
+            if (image?.ImgDetail is not null)
+            {
+                image.ImgDetail = CompressionHelper.DecompressBytes(image.ImgDetail);
+            }
+
+            return image;
         }
 
         /// <summary>
@@ -78,6 +90,16 @@ namespace EarthLat.Backend.Core.BusinessLogic
             await _tableStorageService.AddOrUpdateAsync(station);
 
             _tableStorageService.Init("images");
+
+            if (images?.ImgDetail is not null)
+            {
+                images.ImgDetail = CompressionHelper.CompressBytes(images.ImgDetail);
+            }
+            if (images?.ImgTotal is not null)
+            {
+                images.ImgTotal = CompressionHelper.CompressBytes(images.ImgTotal);
+            }
+ 
             await _tableStorageService.AddAsync(images);
 
             var config = await GetRemoteConfigById(station.RowKey);
