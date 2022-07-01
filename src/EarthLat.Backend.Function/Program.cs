@@ -9,6 +9,7 @@ using System;
 using Microsoft.Extensions.Logging;
 using EarthLat.Backend.Core;
 using EarthLat.Backend.Function.Extension;
+using EarthLat.Backend.Function.JWT;
 
 namespace EarthLat.Backend.Function
 {
@@ -17,7 +18,11 @@ namespace EarthLat.Backend.Function
         public static void Main()
         {
             var host = new HostBuilder()
-                .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+                .ConfigureFunctionsWorkerDefaults(worker =>
+                    {
+                        worker.UseNewtonsoftJson();
+                    }
+                )
                 .ConfigureOpenApi()
                 .ConfigureServices(s =>
                 {

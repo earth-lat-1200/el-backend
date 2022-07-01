@@ -16,8 +16,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly ITableStorageService _tableStorageService;
 
         public SundialLogic(ILogger<ISundialLogic> logger, 
-            ITableStorageService tableStorageService, 
-            IMapper mapper)
+            ITableStorageService tableStorageService)
         {
             this.logger = logger;
             _tableStorageService = tableStorageService ?? throw new ArgumentNullException(nameof(tableStorageService));
