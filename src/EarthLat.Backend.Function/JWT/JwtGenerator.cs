@@ -2,6 +2,7 @@
 using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,7 @@ namespace EarthLat.Backend.Function.JWT
                 {"name",user.Name},
                 {"privilege",user.Privilege},
             };
-            string token = _jwtEncoder.Encode(claims, "0b4e7d36c3f96e873f7f9aadcda4c7b2fd1c9e02ca480e7099d6fc7f2ed13f26");
+            string token = _jwtEncoder.Encode(claims, Environment.GetEnvironmentVariable("JWT_KEY"));
             return token;
         }
     }

@@ -2,6 +2,7 @@
 using JWT.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,11 +13,11 @@ namespace EarthLat.Backend.Function.JWT
 {
     public class JwtValidator
     {
-        public bool IsValid { get; }
-        public string Id { get; }
-        public string Name { get; }
-        public int Privilege { get; }
-        public JwtValidator(HttpRequestData request)
+        public bool IsValid { get; internal set; }
+        public string Id { get; internal set; }
+        public string Name { get; internal set; }
+        public int Privilege { get; internal set; }
+        public void Validate(HttpRequestData request)
         {
             if (!request.Headers.Contains("Authorization"))
             {
@@ -38,7 +39,8 @@ namespace EarthLat.Backend.Function.JWT
                 }
                 claims = new JwtBuilder()
                     .WithAlgorithm(new HMACSHA256Algorithm())
-                    .WithSecret("0b4e7d36c3f96e873f7f9aadcda4c7b2fd1c9e02ca480e7099d6fc7f2ed13f26")
+                    .ExpirationTime(DateTime.Now.AddHours(1))
+                    .WithSecret(Environment.GetEnvironmentVariable("JWT_KEY"))
                     .MustVerifySignature()
                     .Decode<IDictionary<string, object>>(authorizationHeader);
             }

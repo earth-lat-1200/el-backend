@@ -4,6 +4,7 @@ using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Function.Dtos;
+using EarthLat.Backend.Function.Extension;
 using EarthLat.Backend.Function.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -216,12 +217,7 @@ namespace EarthLat.Backend.Function
         {
             try
             {
-                string requestBody = string.Empty;
-                using (StreamReader streamReader = new(request.Body))
-                {
-                    requestBody = await streamReader.ReadToEndAsync();
-                }
-
+                string requestBody = await request.GetRequestBody();
                 var cleanUp = JsonConvert.DeserializeObject<CleanUpDto>(requestBody);
                 var count = await _sundialLogic.CleanUp(cleanUp.DeleteAllBeforeTimestamp, cleanUp.StationId);
 
