@@ -35,6 +35,7 @@ namespace EarthLat.Backend.Function
                     s.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
                     s.AddLogging(c => c.AddConsole());
                     s.AddValidation();
+                    s.AddCors();
                     s.AddSingleton<JwtGenerator>();
                     s.AddSingleton<JwtValidator>();
                 })

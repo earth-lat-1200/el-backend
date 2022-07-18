@@ -3,7 +3,7 @@ using EarthLat.Backend.Core.Exceptions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
-using EarthLat.Backend.Function.Dtos;
+using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Function.Extension;
 using EarthLat.Backend.Function.Validation;
 using Microsoft.AspNetCore.Mvc;

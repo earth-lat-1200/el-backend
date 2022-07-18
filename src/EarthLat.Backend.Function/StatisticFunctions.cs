@@ -5,7 +5,8 @@ using System.Net;
 using System.Threading.Tasks;
 using EarthLat.Backend.Core.BusinessLogic;
 using EarthLat.Backend.Core.Models;
-using EarthLat.Backend.Function.Dtos;
+using EarthLat.Backend.Core.Extensions;
+using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Function.Extension;
 using EarthLat.Backend.Function.JWT;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace EarthLat.Backend.Function
 {
@@ -60,10 +62,33 @@ namespace EarthLat.Backend.Function
             }
         }
 
+        [Function(nameof(GetStationNames))]
+        [OpenApiOperation(operationId: nameof(GetStationNames), tags: new[] { "Frontend API" }, Summary = "Return the Station names")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserDto), Description = "The start- and endtime of a stations sending activity on a certain day")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<IActionResult> GetStationNames(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "StationNames")] HttpRequestData request)
+        {
+            try
+            {
+                string requestBody = await request.GetRequestBody();
+                validator.Validate(request);
+                if (!validator.IsValid || validator.Privilege>0)
+                {
+                    return new UnauthorizedResult();
+                }
+                var result = statisticService.GetStations(validator.Id).Result;
+                if (result == null)
+                    return new NotFoundObjectResult("User is not connected to any stations");
+                return new OkObjectResult(result);
+            }
+            catch (Exception e) { return new ConflictObjectResult(e.Message); }
+        }
 
         [Function(nameof(GetSendTimes))]
-        [OpenApiRequestBody("applicaton/json", typeof(UserCredentials), Description = "Contains username and password of the user who attempts to login")]
-        [OpenApiOperation(operationId: nameof(GetSendTimes), tags: new[] { "Frontend API" }, Summary = "Authenticate the user")]
+        [OpenApiOperation(operationId: nameof(GetSendTimes), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserDto), Description = "The start- and endtime of a stations sending activity on a certain day")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]

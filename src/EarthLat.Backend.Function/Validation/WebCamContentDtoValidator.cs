@@ -1,4 +1,4 @@
-﻿using EarthLat.Backend.Function.Dtos;
+﻿using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Function.Extension;
 
 namespace EarthLat.Backend.Function.Validation
