@@ -17,6 +17,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Linq;
+using System.ComponentModel.DataAnnotations;
 
 namespace EarthLat.Backend.Function
 {
@@ -73,9 +74,8 @@ namespace EarthLat.Backend.Function
         {
             try
             {
-                string requestBody = await request.GetRequestBody();
                 validator.Validate(request);
-                if (!validator.IsValid || validator.Privilege>0)
+                if (!validator.IsValid || validator.Privilege > 0)
                 {
                     return new UnauthorizedResult();
                 }
@@ -93,20 +93,37 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<IActionResult> GetSendTimes(
+        public async Task<ActionResult<BarChartDto>> GetSendTimes(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "SendTimes")] HttpRequestData request)
         {
             try
             {
-                string requestBody = await request.GetRequestBody();
                 validator.Validate(request);
                 if (!validator.IsValid)
                 {
                     return new UnauthorizedResult();
                 }
-                return new OkObjectResult("nice");
+                var referenceDateTime = request.Headers
+                    .FirstOrDefault(x => x.Key == "referencedatetime");
+                var clientDateTime = request.Headers
+                    .FirstOrDefault(x => x.Key == "clientdatetime");
+                if (referenceDateTime.Value == null || clientDateTime.Value == null)
+                {
+                    return new NotFoundObjectResult("missing Headers");
+                }
+                var result = statisticService.GetSendTimes(
+                    validator.Id,
+                    referenceDateTime.Value.FirstOrDefault(),
+                    clientDateTime.Value.FirstOrDefault())
+                    .Result;
+                if (result == null)
+                    return new NotFoundObjectResult("ups");//TODO write different error message
+                return new OkObjectResult(result);
             }
-            catch (Exception e) { return new ConflictObjectResult(e.Message); }
+            catch (Exception e)
+            {
+                return new ConflictObjectResult(e.Message);
+            }
         }
     }
 }
