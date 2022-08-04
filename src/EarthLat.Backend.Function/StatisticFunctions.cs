@@ -8,7 +8,6 @@ using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Function.Extension;
-using EarthLat.Backend.Function.JWT;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -18,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Linq;
 using System.ComponentModel.DataAnnotations;
+using EarthLat.Backend.Core.JWT;
 
 namespace EarthLat.Backend.Function
 {
@@ -25,12 +25,10 @@ namespace EarthLat.Backend.Function
     {
         private readonly StatisticService statisticService;
         private readonly JwtValidator validator;
-        private readonly JwtGenerator generator;
-        public StatisticFunctions(StatisticService statisticService, JwtValidator validator, JwtGenerator generator)
+        public StatisticFunctions(StatisticService statisticService, JwtValidator validator)
         {
             this.statisticService = statisticService;
             this.validator = validator;
-            this.generator = generator;
         }
 
         [Function(nameof(Authenticate))]
@@ -47,44 +45,15 @@ namespace EarthLat.Backend.Function
             {
                 string requestBody = await request.GetRequestBody();
                 var credentials = JsonConvert.DeserializeObject<UserCredentials>(requestBody);
-                var user = statisticService.Authenticate(credentials).Result;
-                return (user == null)
+                var userDto = statisticService.Authenticate(credentials).Result;
+                return (userDto == null)
                     ? new UnauthorizedObjectResult("Username or Password not found")
-                    : new OkObjectResult(new UserDto
-                    {
-                        Name = user.Name,
-                        Privilege = user.Privilege,
-                        Token = generator.GenerateJWT(user)
-                    });
+                    : new OkObjectResult(userDto);
             }
             catch (Exception)
             {
                 return new NotFoundResult();
             }
-        }
-
-        [Function(nameof(GetStationNames))]
-        [OpenApiOperation(operationId: nameof(GetStationNames), tags: new[] { "Frontend API" }, Summary = "Return the Station names")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserDto), Description = "The start- and endtime of a stations sending activity on a certain day")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<IActionResult> GetStationNames(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "StationNames")] HttpRequestData request)
-        {
-            try
-            {
-                validator.Validate(request);
-                if (!validator.IsValid || validator.Privilege > 0)
-                {
-                    return new UnauthorizedResult();
-                }
-                var result = statisticService.GetStations(validator.Id).Result;
-                if (result == null)
-                    return new NotFoundObjectResult("User is not connected to any stations");
-                return new OkObjectResult(result);
-            }
-            catch (Exception e) { return new ConflictObjectResult(e.Message); }
         }
 
         [Function(nameof(GetSendTimes))]
@@ -105,20 +74,56 @@ namespace EarthLat.Backend.Function
                 }
                 var referenceDateTime = request.Headers
                     .FirstOrDefault(x => x.Key == "referencedatetime");
-                var clientDateTime = request.Headers
-                    .FirstOrDefault(x => x.Key == "clientdatetime");
-                if (referenceDateTime.Value == null || clientDateTime.Value == null)
+                var timezoneOffset = request.Headers
+                    .FirstOrDefault(x => x.Key == "timezoneoffset");
+                if (referenceDateTime.Value == null || timezoneOffset.Value == null)
                 {
                     return new NotFoundObjectResult("missing Headers");
                 }
-                var result = statisticService.GetSendTimes(
+                var sendTimes = await statisticService.GetSendTimes(
                     validator.Id,
                     referenceDateTime.Value.FirstOrDefault(),
-                    clientDateTime.Value.FirstOrDefault())
-                    .Result;
-                if (result == null)
-                    return new NotFoundObjectResult("ups");//TODO write different error message
-                return new OkObjectResult(result);
+                    int.Parse(timezoneOffset.Value.FirstOrDefault()));
+                if (sendTimes == null)
+                    return new NotFoundObjectResult("No stations were found");
+                return new OkObjectResult(sendTimes);
+            }
+            catch (Exception e)
+            {
+                return new ConflictObjectResult(e.Message);
+            }
+        }
+        [Function(nameof(GetImagesPerHour))]
+        [OpenApiOperation(operationId: nameof(GetImagesPerHour), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserDto), Description = "The uploaded images per hour of a station on a certain day")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<ActionResult<LineChartDto>> GetImagesPerHour(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "ImagesPerHour")] HttpRequestData request)
+        {
+            try
+            {
+                validator.Validate(request);
+                if (!validator.IsValid)
+                {
+                    return new UnauthorizedResult();
+                }
+                var referenceDateTime = request.Headers
+                    .FirstOrDefault(x => x.Key == "referencedatetime");
+                var timezoneOffset = request.Headers
+                    .FirstOrDefault(x => x.Key == "timezoneoffset");
+                if (referenceDateTime.Value == null || timezoneOffset.Value == null)
+                {
+                    return new NotFoundObjectResult("missing Headers");
+                }
+                var sendTimes = await statisticService.GetImagesPerHour(
+                    validator.Id,
+                    referenceDateTime.Value.FirstOrDefault(),
+                    int.Parse(timezoneOffset.Value.FirstOrDefault()));
+                if (sendTimes == null)
+                    return new NotFoundObjectResult("No stations were found");
+                return new OkObjectResult(sendTimes);
             }
             catch (Exception e)
             {

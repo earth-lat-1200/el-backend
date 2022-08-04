@@ -85,13 +85,12 @@ namespace EarthLat.Backend.Core.TableStorage
             where T : class, ITableEntity, new()
         {
             ThrowIfNotInitialized();
-            var pages = _tableClient.QueryAsync<T>(oDataFilter);
+            var pages = _tableClient.QueryAsync<T>(oDataFilter);//TODO figure out why this takes so long and optimize it
             var result = new List<T>();
             await foreach (var page in pages)
             {
                 result.Add(page);
             }
-
             return result;
         }
 

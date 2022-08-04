@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EarthLat.Backend.Function.JWT
+namespace EarthLat.Backend.Core.JWT
 {
     public class JwtGenerator
     {
