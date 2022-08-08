@@ -1,5 +1,6 @@
 using AutoMapper;
 using EarthLat.Backend.Core.Compression;
+using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
@@ -15,7 +16,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly ILogger<ISundialLogic> logger;
         private readonly ITableStorageService _tableStorageService;
 
-        public SundialLogic(ILogger<ISundialLogic> logger, 
+        public SundialLogic(ILogger<ISundialLogic> logger,
             ITableStorageService tableStorageService)
         {
             this.logger = logger;
@@ -48,9 +49,9 @@ namespace EarthLat.Backend.Core.BusinessLogic
             }
             var image = images.FirstOrDefault();
 
-            if(image?.ImgTotal is not null)
+            if (image?.ImgTotal is not null)
             {
-                if(image.ImgTotalv2 is not null)
+                if (image.ImgTotalv2 is not null)
                 {
                     image.ImgTotal = Combine(image.ImgTotal, image.ImgTotalv2);
                 }
@@ -93,7 +94,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         /// <param name="station">The station.</param>
         /// <param name="images">The images.</param>
         /// <returns></returns>
-        public async Task<RemoteConfig> AddAsync(Station station, Images images)
+        public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status)
         {
             images.SetImagesRowKey();
             station.LastImageKey = images.RowKey;
@@ -101,7 +102,16 @@ namespace EarthLat.Backend.Core.BusinessLogic
             _tableStorageService.Init("stations");
             await _tableStorageService.AddOrUpdateAsync(station);
 
-            _tableStorageService.Init("images");
+            images.CpuTemparature = (float.TryParse(status.CpuTemparature, out float cpuTemperature) ? cpuTemperature : 99.9f);
+            images.CameraTemparature = (float.TryParse(status.CameraTemparature, out float cameraTemparature) ? cameraTemparature : 99.9f);
+            images.OutcaseTemparature = (float.TryParse(status.OutcaseTemparature, out float outcaseTemparature) ? outcaseTemparature : 99.9f);
+            images.SwVersion = status.SwVersion;
+            images.CaptureTime = status.CaptureTime;
+            images.CaptureLat = status.CaptureLat;
+            images.Brightness = status.Brightness;
+            images.Sunny = status.Sunny;
+            images.Cloudy = status.Cloudy;
+            images.Night = status.Night;
 
             if (images?.ImgDetail is not null)
             {
@@ -133,7 +143,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     images.ImgTotalv2 = temp.Skip(firstPart).Take(secondPart).ToArray();
                 }
             }
- 
+            _tableStorageService.Init("images");
             await _tableStorageService.AddAsync(images);
 
             var config = await GetRemoteConfigById(station.RowKey);

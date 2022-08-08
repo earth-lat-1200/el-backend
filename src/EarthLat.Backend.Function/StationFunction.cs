@@ -85,7 +85,6 @@ namespace EarthLat.Backend.Function
                 string requestBody = string.Empty;
                 using (StreamReader streamReader = new(request.Body))
                     requestBody = await streamReader.ReadToEndAsync();
-
                 var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
 
                 if (webCamContent.StationId.ToLower() != stationId.ToLower())
@@ -96,7 +95,11 @@ namespace EarthLat.Backend.Function
                 _webCamContentDtoValidator.IsValid(webCamContent);
                 _webCamContentDtoValidator.IsValid(webCamContent.Status);
 
-                var remoteConfig = await _sundialLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
+                var station = _mapper.Map<Station>(webCamContent);
+                var image = _mapper.Map<Images>(webCamContent);
+                var status = _mapper.Map<Status>(webCamContent.Status);
+
+                var remoteConfig = await _sundialLogic.AddAsync(station, image, status);
 
                 return new OkObjectResult(remoteConfig);
             }
@@ -200,7 +203,6 @@ namespace EarthLat.Backend.Function
                                    .BindingData["id"]
                                    .ToString();
             var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
-
             return images.ImgTotal;
         }
 

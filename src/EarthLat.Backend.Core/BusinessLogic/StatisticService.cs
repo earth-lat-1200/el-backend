@@ -1,9 +1,13 @@
-﻿using EarthLat.Backend.Core.Dtos;
+﻿using EarthLat.Backend.Core.Compression;
+using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.JWT;
 using EarthLat.Backend.Core.Models;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace EarthLat.Backend.Core.BusinessLogic
 {
@@ -12,6 +16,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly ILogger<StatisticService> logger;
         private readonly ITableStorageService _tableStorageService;
         private readonly JwtGenerator generator;
+        private readonly int COORDINATES_LENGTH = 25;
 
         public StatisticService(ILogger<StatisticService> logger,
             ITableStorageService tableStorageService,
@@ -36,8 +41,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
             {
                 Name = user.Name,
                 Privilege = user.Privilege,
-                Token=generator.GenerateJWT(user),
-                StationName = (userStation!=null) ? userStation.StationName : null
+                Token = generator.GenerateJWT(user),
+                StationName = (userStation != null) ? userStation.StationName : null
             };
         }
 
@@ -48,24 +53,27 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var (startDate, endDate) = GetStartAndEndDate(referenceDateTime, timezoneOffset);
             var toReturn = new List<BarChartDto>();
             _tableStorageService.Init("images");
-            foreach(var station in stations)
+            foreach (var station in stations)
             {
+                //Console.WriteLine(station.Item2);
                 var query = $"PartitionKey eq '{station.Item1}' " +
                 $"and Timestamp ge datetime'{startDate:yyyy-MM-dd}T{startDate:HH:mm:ss}.000Z' " +
                 $"and Timestamp lt datetime'{endDate:yyyy-MM-dd}T{endDate:HH:mm:ss}.000Z'";
+                //var query = $"PartitionKey eq '{station.Item1}' " +
+                //    "and RowKey lt '02'";
                 var images = (await _tableStorageService
                     .GetByFilterAsync<Images>(query))
                     .OrderBy(x => x.Timestamp)
                     .ToList();
-                if(images==null||images.Count()<=1)
+                if (images == null || images.Count() <= 1)
                     continue;
                 var startTimeStamp = images.FirstOrDefault().Timestamp.Value.DateTime;
                 var endTimeStamp = images.LastOrDefault().Timestamp.Value.DateTime;
                 toReturn.Add(new BarChartDto
                 {
                     Name = station.Item2,
-                    Start = GetAdjustedSecondsSinceMidnight(startTimeStamp, timezoneOffset),
-                    End = GetAdjustedSecondsSinceMidnight(endTimeStamp, timezoneOffset)
+                    Start = startTimeStamp.GetAdjustedSecondsSinceMidnight(timezoneOffset),
+                    End = endTimeStamp.GetAdjustedSecondsSinceMidnight(timezoneOffset)
                 });
             }
             return toReturn;
@@ -81,23 +89,18 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return user;
         }
 
-        private async Task<List<(string,string)>> GetAccessibleStations(User user)
+        private async Task<List<(string, string)>> GetAccessibleStations(User user)
         {
-            List<(string, string?)> stations = new();
             _tableStorageService.Init("stations");
             if (user.Privilege == 0)
             {
-                stations = (await _tableStorageService.GetAllAsync<Station>()).Where(x => x.StationName != null).Select(x => (x.RowKey, x.StationName)).ToList();
+                return (await _tableStorageService.GetAllAsync<Station>()).Where(x => x.StationName != null).Select(x => (x.RowKey, x.StationName)).ToList();
             }
-            else
-            {
-                string query = $"RowKey eq '{user.PartitionKey}'";
-                var station = (await _tableStorageService
-                    .GetByFilterAsync<Station>(query))
-                    .FirstOrDefault();
-                stations.Add((station.RowKey, station.StationName));
-            }
-            return stations;
+            string query = $"RowKey eq '{user.PartitionKey}'";
+            var station = (await _tableStorageService
+                .GetByFilterAsync<Station>(query))
+                .FirstOrDefault();
+            return new List<(string, string)> { new(station.RowKey, station.StationName) };
         }
 
         private (DateTime, DateTime) GetStartAndEndDate(string referenceDateTime, int timezoneOffset)
@@ -109,17 +112,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return (startDateTime, endDateTime);
         }
 
-        private int GetAdjustedSecondsSinceMidnight(DateTime toAdjust, int timezoneOffset)
-        {
-            bool subtract = timezoneOffset < 0;
-            return toAdjust.AddMinutes(timezoneOffset * (subtract ? -1 : 1)).GetSecondsSinceMidnight();
-        }
-
         public async Task<List<LineChartDto>> GetImagesPerHour(string userId, string referenceDateTime, int timezoneOffset)
         {
             var user = await GetUserById(userId);
             var stations = GetAccessibleStations(user).Result;
             var (startDate, endDate) = GetStartAndEndDate(referenceDateTime, timezoneOffset);
+            startDate = startDate.AddMinutes(-30);//make this into an extension method
+            endDate = endDate.AddMinutes(30);
             var toReturn = new List<LineChartDto>();
             _tableStorageService.Init("images");
             foreach (var station in stations)
@@ -129,28 +128,85 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 $"and Timestamp lt datetime'{endDate:yyyy-MM-dd}T{endDate:HH:mm:ss}.000Z'";
                 var timestamps = (await _tableStorageService
                     .GetByFilterAsync<Images>(query))
-                    .Select(x=>x.Timestamp.Value.DateTime)
+                    .Select(x => x.Timestamp.Value.DateTime)
                     .ToArray();
                 if (timestamps == null || timestamps.Length <= 1)
                     continue;
                 toReturn.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = await GetCoordinates(timestamps, startDate.AddMinutes(-30))
+                    Values = await GetImagesPerHourCoordinates(timestamps, startDate)
                 });
             }
             return toReturn;
         }
 
-        private async Task<int[]> GetCoordinates(DateTime[] timestamps, DateTime startDate)
+        private async Task<double[]> GetImagesPerHourCoordinates(DateTime[] timestamps, DateTime startDate)
         {
-            var coordinates = new int[25];
+            var coordinates = new double[COORDINATES_LENGTH];
             foreach (var timestamp in timestamps)
             {
                 var index = (int)timestamp.Subtract(startDate).TotalHours;
                 coordinates[index]++;
             }
             return coordinates;
+        }
+
+        public async Task<List<LineChartDto>> GetBrightnessValuesPerHour(string userId, string referenceDateTime, int timezoneOffset)
+        {
+            var user = await GetUserById(userId);
+            var stations = GetAccessibleStations(user).Result;
+            var (startDate, endDate) = GetStartAndEndDate(referenceDateTime, timezoneOffset);
+            var toReturn = new List<LineChartDto>();
+            _tableStorageService.Init("images");
+            foreach (var station in stations)
+            {
+                //var query = $"PartitionKey eq '{station.Item1}' " +
+                //$"and Timestamp ge datetime'{startDate:yyyy-MM-dd}T{startDate:HH:mm:ss}.000Z' " +
+                //$"and Timestamp lt datetime'{endDate:yyyy-MM-dd}T{endDate:HH:mm:ss}.000Z'";
+                var query = "PartitionKey eq 'AT001' and RowKey eq '1659938788409'";
+
+                var images = (await _tableStorageService
+                    .GetByFilterAsync<Images>(query))
+                    .ToArray();
+                //if (images == null || images.Length <= 1)
+                //    continue;
+                toReturn.Add(new LineChartDto
+                {
+                    Name = station.Item2,
+                    Values = await GetBrightnessValuesPerHourCoordinates(images, startDate.AddMinutes(-30))
+                });
+            }
+            return toReturn;
+        }
+
+        private async Task<double[]> GetBrightnessValuesPerHourCoordinates(Images[] images, DateTime startDate)
+        {
+            var tempCoordinates = new List<double>[COORDINATES_LENGTH];
+            for (int i = 0; i < COORDINATES_LENGTH; i++)
+            {
+                tempCoordinates[i] = new List<double>();
+            }
+            foreach (var image in images)
+            {
+                var index = (int)image.Timestamp.Value.DateTime.Subtract(startDate).TotalHours;
+                var decompressedImage = CompressionHelper.DecompressBytes(image.ImgTotal);
+                var brightnessValue = await GetBrightnessValueOfImage(decompressedImage);
+                tempCoordinates[index].Add(brightnessValue);
+            }
+            var coordinates = new double[COORDINATES_LENGTH];
+            for (int i = 0; i < COORDINATES_LENGTH; i++)
+            {
+                coordinates[i] = (tempCoordinates[i].Count > 0) ? tempCoordinates[i].Average() : 0;
+            }
+            return coordinates;
+        }
+
+
+        private async Task<double> GetBrightnessValueOfImage(byte[] image)
+        {
+            
+            return 1.0;
         }
     }
 }

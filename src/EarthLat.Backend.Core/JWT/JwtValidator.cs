@@ -39,7 +39,6 @@ namespace EarthLat.Backend.Core.JWT
                 }
                 claims = new JwtBuilder()
                     .WithAlgorithm(new HMACSHA256Algorithm())
-                    .ExpirationTime(DateTime.Now.AddHours(1))
                     .WithSecret(Environment.GetEnvironmentVariable("JWT_KEY"))
                     .MustVerifySignature()
                     .Decode<IDictionary<string, object>>(authorizationHeader);

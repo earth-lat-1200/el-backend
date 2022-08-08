@@ -9,6 +9,6 @@ namespace EarthLat.Backend.Core.Dtos
     public class LineChartDto
     {
         public string Name { get; set; }
-        public int[] Values { get; set; }
+        public double[] Values { get; set; }
     }
 }
