@@ -9,6 +9,10 @@ using System;
 using Microsoft.Extensions.Logging;
 using EarthLat.Backend.Core;
 using EarthLat.Backend.Function.Extension;
+using System.IO;
+using Microsoft.Azure.WebJobs.Host.Bindings;
+using Microsoft.Extensions.Options;
+using EarthLat.Backend.Core.JWT;
 
 namespace EarthLat.Backend.Function
 {
@@ -17,7 +21,11 @@ namespace EarthLat.Backend.Function
         public static void Main()
         {
             var host = new HostBuilder()
-                .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+                .ConfigureFunctionsWorkerDefaults(worker =>
+                    {
+                        worker.UseNewtonsoftJson();
+                    }
+                )
                 .ConfigureOpenApi()
                 .ConfigureServices(s =>
                 {
@@ -27,10 +35,13 @@ namespace EarthLat.Backend.Function
                     s.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
                     s.AddLogging(c => c.AddConsole());
                     s.AddValidation();
+                    s.AddCors();
+                    s.AddSingleton<JwtGenerator>();
+                    s.AddSingleton<JwtValidator>();
                 })
                 .Build();
-
             host.Run();
         }
     }
+
 }

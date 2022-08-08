@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
+using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Core.Models;
-using EarthLat.Backend.Function.Dtos;
 using System;
 
 namespace EarthLat.Backend.Function.Mapping

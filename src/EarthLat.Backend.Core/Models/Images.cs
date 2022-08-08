@@ -15,6 +15,16 @@ namespace EarthLat.Backend.Core.Models
         public int ImgDetailKb { get; set; }
         public int ImgTotalCompressedKb { get; set; }
         public int ImgDetailCompressedKb { get; set; }
+        public string SwVersion { get; set; }
+        public string CaptureTime { get; set; }
+        public string CaptureLat { get; set; }
+        public float CpuTemparature { get; set; }
+        public float CameraTemparature { get; set; }
+        public float OutcaseTemparature { get; set; }
+        public double Brightness { get; set; }
+        public bool Sunny { get; set; }
+        public bool Cloudy { get; set; }
+        public bool Night { get; set; }
 
         // StationId
         public string PartitionKey { get; set; }

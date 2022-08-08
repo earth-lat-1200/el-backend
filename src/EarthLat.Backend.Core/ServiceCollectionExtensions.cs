@@ -27,14 +27,15 @@ namespace EarthLat.Backend.Core
             }
 
             services.AddSingleton<ISundialLogic, SundialLogic>();
+            services.AddSingleton<StatisticService>();
             services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));
+
 
             services.AddHttpClient();
             var provider = services.BuildServiceProvider();
 
             services.AddSingleton(new KeyManagementService(provider.GetRequiredService<HttpClient>(), functionKey, functionUrl));
-            services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));
-
+            //services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));//why is this Singelton added twice?
             return services;
         }
     }

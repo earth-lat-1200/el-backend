@@ -3,7 +3,8 @@ using EarthLat.Backend.Core.Exceptions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.KeyManagement;
 using EarthLat.Backend.Core.Models;
-using EarthLat.Backend.Function.Dtos;
+using EarthLat.Backend.Core.Dtos;
+using EarthLat.Backend.Function.Extension;
 using EarthLat.Backend.Function.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -31,8 +32,8 @@ namespace EarthLat.Backend.Function
         private readonly IWebCamContentDtoValidator _webCamContentDtoValidator;
 
         public StationFunction(
-            ISundialLogic sundialLogic, 
-            IMapper mapper, 
+            ISundialLogic sundialLogic,
+            IMapper mapper,
             IConfiguration configuration,
             IWebCamContentDtoValidator webCamContentDtoValidator,
             KeyManagementService keyManagementService
@@ -57,20 +58,20 @@ namespace EarthLat.Backend.Function
         {
             List<Station> result = (await _sundialLogic.GetAllStationsAsync()).ToList();
 
-            return result is null || result?.Count < 1 
-                ? new NotFoundResult() 
+            return result is null || result?.Count < 1
+                ? new NotFoundResult()
                 : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
         }
 
         [Function(nameof(PushStationInfos))]
-        [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" }, 
+        [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" },
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
         [OpenApiParameter("stationId", In = ParameterLocation.Path)]
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig), 
-            Summary = "The OK response" , Description = "The OK response returns the remotConfig for the specific station.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response." , Description = "Request could not be processed.")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig),
+            Summary = "The OK response", Description = "The OK response returns the remotConfig for the specific station.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
         public async Task<IActionResult> PushStationInfos(
@@ -84,7 +85,6 @@ namespace EarthLat.Backend.Function
                 string requestBody = string.Empty;
                 using (StreamReader streamReader = new(request.Body))
                     requestBody = await streamReader.ReadToEndAsync();
-
                 var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
 
                 if (webCamContent.StationId.ToLower() != stationId.ToLower())
@@ -95,7 +95,11 @@ namespace EarthLat.Backend.Function
                 _webCamContentDtoValidator.IsValid(webCamContent);
                 _webCamContentDtoValidator.IsValid(webCamContent.Status);
 
-                var remoteConfig = await _sundialLogic.AddAsync(_mapper.Map<Station>(webCamContent), _mapper.Map<Images>(webCamContent));
+                var station = _mapper.Map<Station>(webCamContent);
+                var image = _mapper.Map<Images>(webCamContent);
+                var status = _mapper.Map<Status>(webCamContent.Status);
+
+                var remoteConfig = await _sundialLogic.AddAsync(station, image, status);
 
                 return new OkObjectResult(remoteConfig);
             }
@@ -129,7 +133,7 @@ namespace EarthLat.Backend.Function
             {
                 requestBody = await streamReader.ReadToEndAsync();
             }
-           
+
             var remoteConfigDto = JsonConvert.DeserializeObject<RemoteConfigDto>(requestBody);
             var remoteConfig = await _sundialLogic.AddOrUpdateRemoteConfigAsync(_mapper.Map<RemoteConfig>(remoteConfigDto), stationId);
 
@@ -191,7 +195,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
-        public async Task<ActionResult<ImgDto>> GetLatestTotalImageById(
+        public async Task<byte[]> GetLatestTotalImageById(
             [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
             string id = request.FunctionContext
@@ -199,8 +203,7 @@ namespace EarthLat.Backend.Function
                                    .BindingData["id"]
                                    .ToString();
             var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
-
-            return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgTotal });
+            return images.ImgTotal;
         }
 
         [Function(nameof(CleanUp))]
@@ -216,12 +219,7 @@ namespace EarthLat.Backend.Function
         {
             try
             {
-                string requestBody = string.Empty;
-                using (StreamReader streamReader = new(request.Body))
-                {
-                    requestBody = await streamReader.ReadToEndAsync();
-                }
-
+                string requestBody = await request.GetRequestBody();
                 var cleanUp = JsonConvert.DeserializeObject<CleanUpDto>(requestBody);
                 var count = await _sundialLogic.CleanUp(cleanUp.DeleteAllBeforeTimestamp, cleanUp.StationId);
 

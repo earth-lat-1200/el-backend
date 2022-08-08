@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EarthLat.Backend.Function.Dtos
+namespace EarthLat.Backend.Core.Dtos
 {
     public class CleanUpDto
     {

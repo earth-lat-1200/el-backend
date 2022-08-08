@@ -1,4 +1,4 @@
-﻿using EarthLat.Backend.Function.Dtos;
+﻿using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Function.Extension;
 
 namespace EarthLat.Backend.Function.Validation
@@ -32,8 +32,9 @@ namespace EarthLat.Backend.Function.Validation
             status.SwVersion.ThrowIfIsEmptyOrWhitespace("SwVersion");
             status.CaptureTime.ThrowIfIsEmptyOrWhitespace("CaptureTime");
             status.CaptureLat.ThrowIfIsEmptyOrWhitespace("CaptureLat");
-            status.SwVersion.ThrowIfIsEmptyOrWhitespace("SwVersion");
-
+            status.CpuTemparature.ThrowIfIsEmptyOrWhitespace("CpuTemparature");
+            status.CameraTemparature.ThrowIfIsEmptyOrWhitespace("CameraTemparature");
+            status.OutcaseTemparature.ThrowIfIsEmptyOrWhitespace("OutcaseTemparature");
             return true;
         }
     }

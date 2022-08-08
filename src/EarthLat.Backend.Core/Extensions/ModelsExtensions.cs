@@ -13,7 +13,7 @@ namespace EarthLat.Backend.Core.Extensions
 
         internal static void SetImagesRowKey(this Images images)
         {
-            images.RowKey = Guid.NewGuid().ToString("N");
+            images.RowKey = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
         }
 
         internal static void SetRemoteConfigKeys(this RemoteConfig remoteConfig, string stationId)
