@@ -27,7 +27,7 @@ namespace EarthLat.Backend.Core
             }
 
             services.AddSingleton<ISundialLogic, SundialLogic>();
-            services.AddSingleton<StatisticService>();
+            //services.AddSingleton<StatisticService>();
             services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));
 
 
