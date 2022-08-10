@@ -15,6 +15,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
     {
         private readonly ILogger<ISundialLogic> logger;
         private readonly ITableStorageService _tableStorageService;
+        private readonly string PARTITIONKEY_DATE_PARSER = "yyyy-MM-dd";
 
         public SundialLogic(ILogger<ISundialLogic> logger,
             ITableStorageService tableStorageService)
@@ -101,14 +102,16 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
             _tableStorageService.Init("stations");
             await _tableStorageService.AddOrUpdateAsync(station);
-
-            images.CpuTemparature = (float.TryParse(status.CpuTemparature, out float cpuTemperature) ? cpuTemperature : 99.9f);
-            images.CameraTemparature = (float.TryParse(status.CameraTemparature, out float cameraTemparature) ? cameraTemparature : 99.9f);
-            images.OutcaseTemparature = (float.TryParse(status.OutcaseTemparature, out float outcaseTemparature) ? outcaseTemparature : 99.9f);
+            var caputreDateString = status.CaptureLat.Substring(5, 11);
+            var caputreDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            images.PartitionKey += caputreDate.ToString(PARTITIONKEY_DATE_PARSER);
+            images.CpuTemparature = (float.TryParse(status.CpuTemparature.GetParsableNumberString(), out float cpuTemparature) ? cpuTemparature.ToString() : 99.9f.ToString());
+            images.CameraTemparature = (float.TryParse(status.CameraTemparature.GetParsableNumberString(), out float cameraTemparature) ? cameraTemparature.ToString() : 99.9f.ToString());
+            images.OutcaseTemparature = (float.TryParse(status.OutcaseTemparature.GetParsableNumberString(), out float outcaseTemparature) ? outcaseTemparature.ToString() : 99.9f.ToString());
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = status.Brightness;
+            images.Brightness = (float.TryParse(status.Brightness.GetParsableNumberString(), out float brightness) ? brightness.ToString() : 0f.ToString());
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -203,18 +206,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             var timestamp = new DateTimeOffset(deleteAllBeforeTimestamp.AddDays(1));
             _tableStorageService.Init("images");
-            int count = 0;
-
+            var partitionKeyDate = timestamp.ToString(PARTITIONKEY_DATE_PARSER);
             IEnumerable<Images>? result = string.IsNullOrWhiteSpace(stationId)
                 ? await _tableStorageService.GetByFilterAsync<Images>($"Timestamp le datetime'{timestamp:yyyy-MM-ddThh:mm:ssZ}'")
-                : await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and Timestamp lt datetime'{timestamp:yyyy-MM-ddThh:mm:ssZ}'");
+                : await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}{partitionKeyDate}'");
 
+            int count = 0;
             foreach (Images image in result)
             {
                 await _tableStorageService.DeleteAsync<Images>(image.PartitionKey, image.RowKey);
                 count++;
             }
-
             return count;
         }
     }
