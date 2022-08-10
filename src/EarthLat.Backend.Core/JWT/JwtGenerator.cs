@@ -26,7 +26,7 @@ namespace EarthLat.Backend.Core.JWT
         }
         public string GenerateJWT(User user)
         {
-            var unixTimeStamp = DateTimeOffset.UtcNow.AddHours(2).ToUnixTimeSeconds();
+            var unixTimeStamp = DateTimeOffset.UtcNow.AddHours(240).ToUnixTimeSeconds();
             Dictionary<string, object> claims = new Dictionary<string, object> {
                 {"id",user.RowKey},
                 {"name",user.Name},

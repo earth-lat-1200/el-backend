@@ -26,5 +26,10 @@ namespace EarthLat.Backend.Core.Extensions
             remoteConfig.PartitionKey = stationId;
             remoteConfig.RowKey = $"{remoteConfig.PartitionKey}{RemoteConfigRowKeyPostfix}";
         }
+
+        internal static string GetParsableNumberString(this string number)
+        {
+            return number.Replace(".",",");
+        }
     }
 }

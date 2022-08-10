@@ -35,7 +35,6 @@ namespace EarthLat.Backend.Core
             var provider = services.BuildServiceProvider();
 
             services.AddSingleton(new KeyManagementService(provider.GetRequiredService<HttpClient>(), functionKey, functionUrl));
-            //services.AddSingleton<ITableStorageService>(new TableStorageService(tableStorageConnection));//why is this Singelton added twice?
             return services;
         }
     }
