@@ -79,8 +79,8 @@ namespace EarthLat.Backend.Function
         {
             try
             {
-                //var header = request.GetHeaderKey();
-                //await _keyManagementService.CheckPermission(header, stationId);
+                var header = request.GetHeaderKey();
+                await _keyManagementService.CheckPermission(header, stationId);
 
                 string requestBody = string.Empty;
                 using (StreamReader streamReader = new(request.Body))
