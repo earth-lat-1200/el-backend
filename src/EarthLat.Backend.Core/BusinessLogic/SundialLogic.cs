@@ -46,7 +46,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             {
                 var currentStation = station.First();
                 _tableStorageService.Init("images");
-                images = (await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and RowKey eq '{currentStation.LastImageKey}'")).ToList();
+                images = (await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}{currentStation.LastImagesDate}' and RowKey eq '{currentStation.LastImageKey}'")).ToList();
             }
             var image = images.FirstOrDefault();
 
@@ -99,11 +99,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             images.SetImagesRowKey();
             station.LastImageKey = images.RowKey;
-
-            _tableStorageService.Init("stations");
-            await _tableStorageService.AddOrUpdateAsync(station);
             var caputreDateString = status.CaptureLat.Substring(5, 11);
             var caputreDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            station.LastImagesDate = caputreDate.ToString(PARTITIONKEY_DATE_PARSER);
+            _tableStorageService.Init("stations");
+            await _tableStorageService.AddOrUpdateAsync(station);
             images.PartitionKey += caputreDate.ToString(PARTITIONKEY_DATE_PARSER);
             images.CpuTemparature = (float.TryParse(status.CpuTemparature.GetParsableNumberString(), out float cpuTemparature) ? cpuTemparature.ToString() : 99.9f.ToString());
             images.CameraTemparature = (float.TryParse(status.CameraTemparature.GetParsableNumberString(), out float cameraTemparature) ? cameraTemparature.ToString() : 99.9f.ToString());
