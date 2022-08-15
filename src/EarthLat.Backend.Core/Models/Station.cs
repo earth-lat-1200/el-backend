@@ -9,7 +9,6 @@ namespace EarthLat.Backend.Core.Models
         public string? SundialName { get; set; }
         public bool IsActive { get; set; } = true;
         public string? LastImageKey { get; set; }
-        public string? LastImagesDate { get; set; }
         public string? Location { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }

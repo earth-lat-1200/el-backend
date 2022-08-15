@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,11 +20,9 @@ namespace EarthLat.Backend.Core.Extensions
         {
             return (int) date.Subtract(date.Date).TotalSeconds;
         }
-
-        public static int GetAdjustedSecondsSinceMidnight(this DateTime toAdjust, int timezoneOffset)
+        public static DateTime GetDateTimeFromTimestamp(this long timestamp)
         {
-            bool subtract = timezoneOffset < 0;
-            return toAdjust.AddMinutes(timezoneOffset * (subtract ? -1 : 1)).GetSecondsSinceMidnight();
+            return DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
         }
 
         public static (string?,string?) GetHeaders(this HttpHeadersCollection headers)
@@ -46,6 +45,22 @@ namespace EarthLat.Backend.Core.Extensions
                 return false;
             }
             return true;
+        }
+
+        public static string ToBase64(this object toConvert)
+        {
+            using MemoryStream ms = new();
+            new BinaryFormatter().Serialize(ms, toConvert);
+            return Convert.ToBase64String(ms.ToArray());
+        }
+
+        public static T FromBase64<T>(this string toConvert)
+        {
+            byte[] bytes = Convert.FromBase64String(toConvert);
+            using MemoryStream ms = new MemoryStream(bytes, 0, bytes.Length);
+            ms.Write(bytes, 0, bytes.Length);
+            ms.Position = 0;
+            return (T)new BinaryFormatter().Deserialize(ms);
         }
     }
 }
