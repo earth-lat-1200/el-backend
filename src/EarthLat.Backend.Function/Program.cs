@@ -36,8 +36,8 @@ namespace EarthLat.Backend.Function
                     s.AddLogging(c => c.AddConsole());
                     s.AddValidation();
                     s.AddCors();
-                    s.AddSingleton<JwtGenerator>();
-                    s.AddSingleton<JwtValidator>();
+                    //s.AddSingleton<JwtGenerator>();
+                    //s.AddSingleton<JwtValidator>();
                 })
                 .Build();
             host.Run();
