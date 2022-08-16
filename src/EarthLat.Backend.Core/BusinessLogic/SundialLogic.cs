@@ -176,18 +176,18 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.ImgTotalv2 = temp.Skip(firstPart).Take(secondPart).ToArray();
         }
 
-        private async Task UpdateStatistics(Station station, Images images, Status status)
-        {
-            var (statistic, referenceDate) = await GetLatestStatisticAndDate(station, status);
-            if (statistic == null)
-            {
-                await CreateNewStatisticEntry(station, images, status, referenceDate);
-            }
-            else
-            {
-                await UpdateStatisticEntry(statistic, images, status);
-            }
-        }
+        //private async Task UpdateStatistics(Station station, Images images, Status status)
+        //{
+        //    var (statistic, referenceDate) = await GetLatestStatisticAndDate(station, status);
+        //    if (statistic == null)
+        //    {
+        //        await CreateNewStatisticEntry(station, images, status, referenceDate);
+        //    }
+        //    else
+        //    {
+        //        await UpdateStatisticEntry(statistic, images, status);
+        //    }
+        //}
 
         private async Task<(Statistic,DateTime)> GetLatestStatisticAndDate(Station station, Status status)
         {
@@ -198,35 +198,35 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return (result.FirstOrDefault(),referenceDate);
         }
 
-        private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
-        {
-            var timestamps = new List<long> { long.Parse(images.RowKey) };
-            var brightnessValues = new List<float> { float.Parse(status.Brightness) };
-            var temperatureValues = new List<float> { float.Parse(status.OutcaseTemparature.GetParsableNumberString()) };
-            var statistic = new Statistic
-            {
-                PartitionKey = station.RowKey,
-                RowKey = referenceDate.ToString(PARTITIONKEY_DATE_PARSER),
-                UploadTimestamps = timestamps.ToBase64(),
-                TemperatureValues = temperatureValues.ToBase64(),
-                BrightnessValues = brightnessValues.ToBase64()
-            };
-            await _tableStorageService.AddAsync(statistic);
-        }
+        //private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
+        //{
+        //    var timestamps = new List<long> { long.Parse(images.RowKey) };
+        //    var brightnessValues = new List<float> { float.Parse(status.Brightness) };
+        //    var temperatureValues = new List<float> { float.Parse(status.OutcaseTemparature.GetParsableNumberString()) };
+        //    var statistic = new Statistic
+        //    {
+        //        PartitionKey = station.RowKey,
+        //        RowKey = referenceDate.ToString(PARTITIONKEY_DATE_PARSER),
+        //        UploadTimestamps = timestamps.ToBase64(),
+        //        TemperatureValues = temperatureValues.ToBase64(),
+        //        BrightnessValues = brightnessValues.ToBase64()
+        //    };
+        //    await _tableStorageService.AddAsync(statistic);
+        //}
 
-        private async Task UpdateStatisticEntry(Statistic statistic, Images images, Status status)
-        {
-            var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
-            var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
-            var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
-            timestamps.Add(long.Parse(images.RowKey));
-            brightnessValues.Add(float.Parse(status.Brightness));
-            temperatureValues.Add(float.Parse(status.OutcaseTemparature.GetParsableNumberString()));
-            statistic.UploadTimestamps = timestamps.ToBase64();
-            statistic.BrightnessValues = brightnessValues.ToBase64();
-            statistic.TemperatureValues = temperatureValues.ToBase64();
-            await _tableStorageService.UpdateAsync(statistic);
-        }
+        //private async Task UpdateStatisticEntry(Statistic statistic, Images images, Status status)
+        //{
+        //    var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
+        //    var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
+        //    var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
+        //    timestamps.Add(long.Parse(images.RowKey));
+        //    brightnessValues.Add(float.Parse(status.Brightness));
+        //    temperatureValues.Add(float.Parse(status.OutcaseTemparature.GetParsableNumberString()));
+        //    statistic.UploadTimestamps = timestamps.ToBase64();
+        //    statistic.BrightnessValues = brightnessValues.ToBase64();
+        //    statistic.TemperatureValues = temperatureValues.ToBase64();
+        //    await _tableStorageService.UpdateAsync(statistic);
+        //}
 
         private async Task<RemoteConfig> GetRemoteConfig(Station station)
         {
