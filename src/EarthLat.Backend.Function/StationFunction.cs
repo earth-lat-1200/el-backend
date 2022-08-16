@@ -70,7 +70,7 @@ namespace EarthLat.Backend.Function
         [OpenApiRequestBody("applicaton/json", typeof(WebCamContentDto), Description = "The body consists of the stationInfo, the imageTotal and the imageDetail in a json format.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RemoteConfig),
-            Summary = "The OK response", Description = "The OK response returns the remotConfig for the specific station.")]
+            Summary = "The OK response", Description = "The OK response returns the remoteConfig for the specific station.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access or permission for station denied.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
@@ -79,8 +79,8 @@ namespace EarthLat.Backend.Function
         {
             try
             {
-                var header = request.GetHeaderKey();
-                await _keyManagementService.CheckPermission(header, stationId);
+                //var header = request.GetHeaderKey();
+                //await _keyManagementService.CheckPermission(header, stationId);
 
                 string requestBody = string.Empty;
                 using (StreamReader streamReader = new(request.Body))
