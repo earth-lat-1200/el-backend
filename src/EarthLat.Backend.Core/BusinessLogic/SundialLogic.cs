@@ -189,14 +189,14 @@ namespace EarthLat.Backend.Core.BusinessLogic
         //    }
         //}
 
-        private async Task<(Statistic,DateTime)> GetLatestStatisticAndDate(Station station, Status status)
-        {
-            var caputreDateString = status.CaptureLat.Substring(5, 11);
-            var referenceDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
-            _tableStorageService.Init("statistics");
-            var result = await _tableStorageService.GetByFilterAsync<Statistic>($"PartitionKey eq '{station.RowKey}' and RowKey eq '{referenceDate.ToString(PARTITIONKEY_DATE_PARSER)}'");
-            return (result.FirstOrDefault(),referenceDate);
-        }
+        //private async Task<(Statistic,DateTime)> GetLatestStatisticAndDate(Station station, Status status)
+        //{
+        //    var caputreDateString = status.CaptureLat.Substring(5, 11);
+        //    var referenceDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        //    _tableStorageService.Init("statistics");
+        //    var result = await _tableStorageService.GetByFilterAsync<Statistic>($"PartitionKey eq '{station.RowKey}' and RowKey eq '{referenceDate.ToString(PARTITIONKEY_DATE_PARSER)}'");
+        //    return (result.FirstOrDefault(),referenceDate);
+        //}
 
         //private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
         //{
