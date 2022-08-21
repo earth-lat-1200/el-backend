@@ -121,7 +121,7 @@ namespace EarthLat.Backend.Function
 
                 var remoteConfig = await _sundialLogic.AddAsync(station, image, status);
 
-                return new OkObjectResult(null);
+                return new OkObjectResult(remoteConfig);
             }
             catch (ValidationException e) { return new BadRequestObjectResult(e.Message); }
             catch (UnauthorizedException) { return new UnauthorizedResult(); }
