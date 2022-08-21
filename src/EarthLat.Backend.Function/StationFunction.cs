@@ -215,7 +215,7 @@ namespace EarthLat.Backend.Function
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
-        public async Task<byte[]> GetLatestTotalImageById(
+        public async Task<ActionResult<byte[]>> GetLatestTotalImageById(
             [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
         {
             string id = request.FunctionContext
@@ -223,7 +223,7 @@ namespace EarthLat.Backend.Function
                                    .BindingData["id"]
                                    .ToString();
             var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
-            return images.ImgTotal;
+            return new OkObjectResult(images.ImgTotal);
         }
 
         [Function(nameof(CleanUp))]
