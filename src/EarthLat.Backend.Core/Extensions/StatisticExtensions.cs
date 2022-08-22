@@ -11,21 +11,18 @@ namespace EarthLat.Backend.Core.Extensions
 {
     public static class StatisticExtensions
     {
-        public static DateTime EndOfDay(this DateTime date)
+        public static int GetSecondsStartTime(this DateTime date, int timezoneOffset)
         {
-            return date.Date.AddDays(1).AddTicks(-1);
-        }
-
-        public static int GetSecondsSinceMidnight(this DateTime date)
-        {
-            return (int) date.Subtract(date.Date).TotalSeconds;
+            var cleanedStartDate = date.Date.AddDays(-1);
+            var totalSeconds = date.AddMinutes(timezoneOffset).Subtract(cleanedStartDate);
+            return (int) totalSeconds.TotalSeconds;
         }
         public static DateTime GetDateTimeFromTimestamp(this long timestamp)
         {
             return DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
         }
 
-        public static (string?,string?) GetHeaders(this HttpHeadersCollection headers)
+        public static (string?, string?) GetHeaders(this HttpHeadersCollection headers)
         {
             var referenceDateTime = headers.FirstOrDefault(x => x.Key == "referencedatetime");
             var timezoneOffset = headers.FirstOrDefault(x => x.Key == "timezoneoffset");

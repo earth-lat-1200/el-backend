@@ -5,6 +5,8 @@ using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
 using Microsoft.Extensions.Logging;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace EarthLat.Backend.Core.BusinessLogic
@@ -24,7 +26,10 @@ namespace EarthLat.Backend.Core.BusinessLogic
             this.logger = logger;
             _tableStorageService = tableStorageService ?? throw new ArgumentNullException(nameof(tableStorageService));
         }
-
+        public string GetJWTKey()
+        {
+            return Environment.GetEnvironmentVariable("JWT_KEY");
+        }
         public async Task<IEnumerable<Station>> GetAllStationsAsync()
         {
             _tableStorageService.Init("stations");
@@ -99,7 +104,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             images.SetImagesRowKey();
             await AddImage(station, images, status);
-            //await UpdateStatistics(station, images, status);//the float values are in different formats. I need to see them in Detail to parse them depending on the sending station
+            await UpdateStatistics(station, images, status);
             return await GetRemoteConfig(station);
         }
 
@@ -123,13 +128,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
         private void SetImagesPropertiesFromStatus(Images images, Status status)
         {
-            images.CpuTemparature = status.CpuTemparature;
-            images.CameraTemparature = status.CameraTemparature;
-            images.OutcaseTemparature = status.OutcaseTemparature;
+            images.CpuTemparature = status.CpuTemparature.ParseToFloat().ToString();
+            images.CameraTemparature = status.CameraTemparature.ParseToFloat().ToString();
+            images.OutcaseTemparature = status.OutcaseTemparature.ParseToFloat().ToString();
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = status.Brightness;
+            images.Brightness = status.Brightness.ParseToFloat().ToString();
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -176,57 +181,57 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.ImgTotalv2 = temp.Skip(firstPart).Take(secondPart).ToArray();
         }
 
-        //private async Task UpdateStatistics(Station station, Images images, Status status)
-        //{
-        //    var (statistic, referenceDate) = await GetLatestStatisticAndDate(station, status);
-        //    if (statistic == null)
-        //    {
-        //        await CreateNewStatisticEntry(station, images, status, referenceDate);
-        //    }
-        //    else
-        //    {
-        //        await UpdateStatisticEntry(statistic, images, status);
-        //    }
-        //}
+        private async Task UpdateStatistics(Station station, Images images, Status status)
+        {
+            var (statistic, referenceDate) = await GetLatestStatisticAndDate(station, status);
+            if (statistic == null)
+            {
+                await CreateNewStatisticEntry(station, images, status, referenceDate);
+            }
+            else
+            {
+                await UpdateStatisticEntry(statistic, images, status);
+            }
+        }
 
-        //private async Task<(Statistic,DateTime)> GetLatestStatisticAndDate(Station station, Status status)
-        //{
-        //    var caputreDateString = status.CaptureLat.Substring(5, 11);
-        //    var referenceDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
-        //    _tableStorageService.Init("statistics");
-        //    var result = await _tableStorageService.GetByFilterAsync<Statistic>($"PartitionKey eq '{station.RowKey}' and RowKey eq '{referenceDate.ToString(PARTITIONKEY_DATE_PARSER)}'");
-        //    return (result.FirstOrDefault(),referenceDate);
-        //}
+        private async Task<(Statistic, DateTime)> GetLatestStatisticAndDate(Station station, Status status)
+        {
+            var caputreDateString = status.CaptureLat.Substring(5, 11);
+            var referenceDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            _tableStorageService.Init("statistics");
+            var result = await _tableStorageService.GetByFilterAsync<Statistic>($"PartitionKey eq '{station.RowKey}' and RowKey eq '{referenceDate.ToString(PARTITIONKEY_DATE_PARSER)}'");
+            return (result.FirstOrDefault(), referenceDate);
+        }
 
-        //private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
-        //{
-        //    var timestamps = new List<long> { long.Parse(images.RowKey) };
-        //    var brightnessValues = new List<float> { float.Parse(status.Brightness) };
-        //    var temperatureValues = new List<float> { float.Parse(status.OutcaseTemparature.GetParsableNumberString()) };
-        //    var statistic = new Statistic
-        //    {
-        //        PartitionKey = station.RowKey,
-        //        RowKey = referenceDate.ToString(PARTITIONKEY_DATE_PARSER),
-        //        UploadTimestamps = timestamps.ToBase64(),
-        //        TemperatureValues = temperatureValues.ToBase64(),
-        //        BrightnessValues = brightnessValues.ToBase64()
-        //    };
-        //    await _tableStorageService.AddAsync(statistic);
-        //}
+        private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
+        {
+            var timestamps = new List<long> { long.Parse(images.RowKey) };
+            var brightnessValues = new List<float> { status.Brightness.ParseToFloat() };
+            var temperatureValues = new List<float> { status.OutcaseTemparature.ParseToFloat() };
+            var statistic = new Statistic
+            {
+                PartitionKey = station.RowKey,
+                RowKey = referenceDate.ToString(PARTITIONKEY_DATE_PARSER),
+                UploadTimestamps = timestamps.ToBase64(),
+                TemperatureValues = temperatureValues.ToBase64(),
+                BrightnessValues = brightnessValues.ToBase64()
+            };
+            await _tableStorageService.AddAsync(statistic);
+        }
 
-        //private async Task UpdateStatisticEntry(Statistic statistic, Images images, Status status)
-        //{
-        //    var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
-        //    var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
-        //    var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
-        //    timestamps.Add(long.Parse(images.RowKey));
-        //    brightnessValues.Add(float.Parse(status.Brightness));
-        //    temperatureValues.Add(float.Parse(status.OutcaseTemparature.GetParsableNumberString()));
-        //    statistic.UploadTimestamps = timestamps.ToBase64();
-        //    statistic.BrightnessValues = brightnessValues.ToBase64();
-        //    statistic.TemperatureValues = temperatureValues.ToBase64();
-        //    await _tableStorageService.UpdateAsync(statistic);
-        //}
+        private async Task UpdateStatisticEntry(Statistic statistic, Images images, Status status)
+        {
+            var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
+            var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
+            var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
+            timestamps.Add(long.Parse(images.RowKey));
+            brightnessValues.Add(status.Brightness.ParseToFloat());
+            temperatureValues.Add(status.OutcaseTemparature.ParseToFloat());
+            statistic.UploadTimestamps = timestamps.ToBase64();
+            statistic.BrightnessValues = brightnessValues.ToBase64();
+            statistic.TemperatureValues = temperatureValues.ToBase64();
+            await _tableStorageService.UpdateAsync(statistic);
+        }
 
         private async Task<RemoteConfig> GetRemoteConfig(Station station)
         {

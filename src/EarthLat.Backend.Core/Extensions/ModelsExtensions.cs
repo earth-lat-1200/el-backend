@@ -6,11 +6,6 @@ namespace EarthLat.Backend.Core.Extensions
     {
         public static string RemoteConfigRowKeyPostfix = "_config";
 
-        //internal static void SetStationRowKey(this Station station)
-        //{
-        //    station.RowKey = $"{station.Longitude}_{station.Latitude}";
-        //}
-
         internal static void SetImagesRowKey(this Images images)
         {
             images.RowKey = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
@@ -27,9 +22,16 @@ namespace EarthLat.Backend.Core.Extensions
             remoteConfig.RowKey = $"{remoteConfig.PartitionKey}{RemoteConfigRowKeyPostfix}";
         }
 
-        internal static string GetParsableNumberString(this string number)
+        internal static float ParseToFloat(this string numberString)
         {
-            return number.Replace(".",",");
+            try
+            {
+                return float.Parse(numberString.Replace(".", ","));
+            }
+            catch(Exception)
+            {
+                return 99.9f;
+            }
         }
     }
 }

@@ -46,6 +46,26 @@ namespace EarthLat.Backend.Function
             this._webCamContentDtoValidator = webCamContentDtoValidator ?? throw new ArgumentNullException(nameof(webCamContentDtoValidator));
         }
 
+        [Function(nameof(GetJWTKey))]
+        [OpenApiOperation(operationId: nameof(GetJWTKey), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<BarChartDto>), Description = "The start- and endtime(s) of a/all stations sending activity on a certain day")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        public async Task<ActionResult<BarChartDto>> GetJWTKey(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "JWT")] HttpRequestData request)
+        {
+            try
+            {
+                var r = _sundialLogic.GetJWTKey();
+                return new OkObjectResult(r);
+            }
+            catch (Exception e)
+            {
+                return new ConflictObjectResult(e.Message);
+            }
+        }
+
         [Function(nameof(GetAllStations))]
         [OpenApiOperation(operationId: nameof(GetAllStations), tags: new[] { "Frontend API" }, Summary = "Gets all stations.", Description = "Get all station infos of the available stations.")]
         [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
@@ -79,8 +99,8 @@ namespace EarthLat.Backend.Function
         {
             try
             {
-                //var header = request.GetHeaderKey();
-                //await _keyManagementService.CheckPermission(header, stationId);
+                var header = request.GetHeaderKey();
+                await _keyManagementService.CheckPermission(header, stationId);
 
                 string requestBody = string.Empty;
                 using (StreamReader streamReader = new(request.Body))
