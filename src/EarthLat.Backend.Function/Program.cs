@@ -12,6 +12,7 @@ using EarthLat.Backend.Function.Extension;
 using System.IO;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Options;
+using EarthLat.Backend.Core.JWT;
 
 namespace EarthLat.Backend.Function
 {
