@@ -28,8 +28,7 @@ namespace EarthLat.Backend.Core.JWT
         {
             var expirationTimestamp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
             Dictionary<string, object> claims = new Dictionary<string, object> {
-                {"id",user.RowKey},
-                {"name",user.Name},
+                {"station",user.PartitionKey},
                 {"privilege",user.Privilege},
                 {"exp", expirationTimestamp }
             };

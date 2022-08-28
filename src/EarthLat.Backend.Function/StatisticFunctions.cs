@@ -82,7 +82,7 @@ namespace EarthLat.Backend.Function
                 }
                 var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
                 var sendTimes = await statisticService.GetSendTimesAsync(
-                    validator.Id,
+                    validator,
                     referenceDateTime,
                     int.Parse(timezoneOffset));
                 if (sendTimes == null)
@@ -117,7 +117,7 @@ namespace EarthLat.Backend.Function
                 }
                 var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
                 var brightnessValues = await statisticService.GetTemperatrueValuesPerHourAsync(
-                    validator.Id,
+                    validator,
                     referenceDateTime,
                     int.Parse(timezoneOffset));
                 if (brightnessValues == null)
@@ -152,7 +152,7 @@ namespace EarthLat.Backend.Function
                 }
                 var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
                 var sendTimes = await statisticService.GetImagesPerHourAsync(
-                    validator.Id,
+                    validator,
                     referenceDateTime,
                     int.Parse(timezoneOffset));
                 if (sendTimes == null)
@@ -187,7 +187,7 @@ namespace EarthLat.Backend.Function
                 }
                 var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
                 var brightnessValues = await statisticService.GetBrightnessValuesPerHourAsync(
-                    validator.Id,
+                    validator,
                     referenceDateTime,
                     int.Parse(timezoneOffset));
                 if (brightnessValues == null)

@@ -29,7 +29,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             _tableStorageService.Init("users");
             string query = $"Name eq '{credentials.Username}' and Password eq '{credentials.Password}'";
-            var user = (await _tableStorageService.GetByFilterAsync<User>(query)).FirstOrDefault();
+            var users = (await _tableStorageService.GetByFilterAsync<User>(query));
+            var user = users.FirstOrDefault();
             _tableStorageService.Init("stations");
             var stations = (await _tableStorageService.GetAllAsync<Station>()).ToList();
             if (user == null || stations == null)
@@ -44,11 +45,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
             };
         }
 
-        public async Task<List<BarChartDto>> GetSendTimesAsync(string userId, string referenceDate, int timezoneOffset)
+        public async Task<List<BarChartDto>> GetSendTimesAsync
+            (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
             List<BarChartDto> dtos = new();
-            var user = await GetUserByIdAsync(userId);
-            var stations = await GetAccessibleStations(user);
+            var stations = await GetAccessibleStations(validator);
             _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
@@ -70,24 +71,15 @@ namespace EarthLat.Backend.Core.BusinessLogic
             }
             return dtos;
         }
-        private async Task<User> GetUserByIdAsync(string userId)
-        {
-            _tableStorageService.Init("users");
-            string query = $"RowKey eq '{userId}'";
-            var user = (await _tableStorageService
-                .GetByFilterAsync<User>(query))
-                .FirstOrDefault();
-            return user;
-        }
 
-        private async Task<List<(string, string)>> GetAccessibleStations(User user)
+        private async Task<List<(string, string)>> GetAccessibleStations(JwtValidator validator)
         {
             _tableStorageService.Init("stations");
-            if (user.Privilege == 0)
+            if (validator.Privilege == 0)
             {
                 return (await _tableStorageService.GetAllAsync<Station>()).Where(x => x.StationName != null).Select(x => (x.RowKey, x.StationName)).ToList();
             }
-            string query = $"RowKey eq '{user.PartitionKey}'";
+            string query = $"RowKey eq '{validator.Station}'";
             var stations = (await _tableStorageService
                 .GetByFilterAsync<Station>(query));
             if (stations == null)
@@ -98,11 +90,10 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
 
         public async Task<List<LineChartDto>> GetTemperatrueValuesPerHourAsync
-            (string userId, string referenceDate, int timezoneOffset)
+            (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
             List<LineChartDto> dtos = new();
-            var user = await GetUserByIdAsync(userId);
-            var stations = await GetAccessibleStations(user);
+            var stations = await GetAccessibleStations(validator);
             _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
@@ -142,11 +133,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var coordinates = new double[COORDINATES_LENGTH];
             for (int i = 0; i < COORDINATES_LENGTH; i++)
             {
-                try
+                if (tempCoordinates[i].Any())
                 {
                     coordinates[i] = tempCoordinates[i].Average();
                 }
-                catch (Exception)
+                else
                 {
                     coordinates[i] = 0;
                 }
@@ -154,11 +145,10 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return coordinates;
         }
         public async Task<List<LineChartDto>> GetImagesPerHourAsync
-            (string userId, string referenceDate, int timezoneOffset)
+            (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
             List<LineChartDto> dtos = new();
-            var user = await GetUserByIdAsync(userId);
-            var stations = await GetAccessibleStations(user);
+            var stations = await GetAccessibleStations(validator);
             _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
@@ -193,11 +183,10 @@ namespace EarthLat.Backend.Core.BusinessLogic
         }
 
         public async Task<List<LineChartDto>> GetBrightnessValuesPerHourAsync
-            (string userId, string referenceDate, int timezoneOffset)
+            (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
             List<LineChartDto> dtos = new();
-            var user = await GetUserByIdAsync(userId);
-            var stations = await GetAccessibleStations(user);
+            var stations = await GetAccessibleStations(validator);
             _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
