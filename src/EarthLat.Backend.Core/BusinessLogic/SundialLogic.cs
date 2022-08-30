@@ -104,7 +104,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status)
         {
             images.SetImagesRowKey();
-            var sunlitLikelyhood = GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
+            var sunlitLikelyhood = await GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
             images.SunlitLikelyhood = sunlitLikelyhood.ToString();
             await AddImage(station, images, status);
             await UpdateStatistics(station, images, status);
