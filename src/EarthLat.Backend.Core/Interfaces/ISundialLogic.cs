@@ -5,7 +5,6 @@ namespace EarthLat.Backend.Core.Interfaces
 {
     public interface ISundialLogic
     {
-        string GetJWTKey();
         Task<IEnumerable<Station>> GetAllStationsAsync();
         Task<Images> GetLatestImagesByIdAsync(string stationId);
         Task<Station> GetStationByIdAsync(string stationId);

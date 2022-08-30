@@ -6,8 +6,6 @@ using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
 using Microsoft.Extensions.Logging;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace EarthLat.Backend.Core.BusinessLogic
 {
@@ -18,17 +16,20 @@ namespace EarthLat.Backend.Core.BusinessLogic
     {
         private readonly ILogger<ISundialLogic> logger;
         private readonly ITableStorageService _tableStorageService;
-        private readonly string PARTITIONKEY_DATE_PARSER = "yyyy-MM-dd";
+        private static readonly string PARTITIONKEY_DATE_PARSER = "yyyy-MM-dd";
+        private static readonly int PIXEL_COUNT = 256;
+        private static readonly int TOP_MARGIN = 100;
+        private static readonly int LEFT_MARGIN = 100;
+        private static readonly int SELECTED_HEIGHT = 150;
+        private static readonly int SELECTED_WIDTH = 450;
+        private static readonly int IMG_PIXEL_COUNT = SELECTED_HEIGHT * SELECTED_WIDTH;
+        private static readonly double EXPONENT = 7831216639287 / 10000000000000;
 
         public SundialLogic(ILogger<ISundialLogic> logger,
             ITableStorageService tableStorageService)
         {
             this.logger = logger;
             _tableStorageService = tableStorageService ?? throw new ArgumentNullException(nameof(tableStorageService));
-        }
-        public string GetJWTKey()
-        {
-            return Environment.GetEnvironmentVariable("JWT_KEY");
         }
         public async Task<IEnumerable<Station>> GetAllStationsAsync()
         {
@@ -103,9 +104,106 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status)
         {
             images.SetImagesRowKey();
+            var sunlitLikelyhood = GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
+            images.SunlitLikelyhood = sunlitLikelyhood.ToString();
             await AddImage(station, images, status);
             await UpdateStatistics(station, images, status);
             return await GetRemoteConfig(station);
+        }
+
+        private async Task<float> GetSunlitLikelyhood(byte[] image, string stationName)
+        {
+            try
+            {
+                var referenceByteArray = await GetReferenceImage(stationName);
+                if (referenceByteArray != null)
+                {
+                    Bitmap refernceImage = GetBitmapFromBytes(referenceByteArray);
+                    Bitmap compareImage = GetBitmapFromBytes(image);
+                    var sunlitLikelyhood = CalculateSunlitLikelyhood(refernceImage, compareImage);
+                    return sunlitLikelyhood;
+                }
+                return 50.0f;
+            }
+            catch (Exception)
+            {
+                return 50.0f;
+            }
+        }
+        private async Task<byte[]> GetReferenceImage(string stationName)
+        {
+            _tableStorageService.Init("stations");
+            var query = $"RowKey eq '{stationName}'";
+            var station = (await _tableStorageService
+                .GetByFilterAsync<Station>(query))
+                .FirstOrDefault();
+            if (station.RefernceImage == null)
+            {
+                return null;
+            }
+            return CompressionHelper.DecompressBytes(station.RefernceImage);
+
+        }
+        private Bitmap GetBitmapFromBytes(byte[] image)
+        {
+            Bitmap bm;
+            using (var ms = new MemoryStream(image))
+            {
+                bm = new Bitmap(ms);
+            }
+            return bm;
+        }
+
+        private float CalculateSunlitLikelyhood(Bitmap refernceImage, Bitmap compareImage)
+        {
+            int[] referenceHistogram = GetHistogramFromBitmap(refernceImage);
+            int[] compareHistogram = GetHistogramFromBitmap(compareImage);
+            var referenceDictionary = GetSortedDictionary(referenceHistogram);
+            var compareDictionary = GetSortedDictionary(compareHistogram);
+            double total = 0;
+            for (int i = 0; i < PIXEL_COUNT; i++)
+            {
+                var refernceElement = referenceDictionary.ElementAt(i);
+                var compareElement = compareDictionary.ElementAt(i);
+                var referenceProduct = refernceElement.Key * refernceElement.Value;
+                var compareProduct = compareElement.Key * compareElement.Value;
+                var differnece = compareProduct - referenceProduct;
+                var weightedDiffenerce = (differnece) * GetWeightFromIndex(i);
+                total += weightedDiffenerce;
+            }
+            total = total / (IMG_PIXEL_COUNT * PIXEL_COUNT);
+            float sunlitLikelyhood = (float)((total + 1) / 2);
+            return sunlitLikelyhood;
+        }
+
+        private int[] GetHistogramFromBitmap(Bitmap bitmap)
+        {
+            int[] histogram = new int[PIXEL_COUNT];
+            for (int y = TOP_MARGIN; y < TOP_MARGIN + SELECTED_HEIGHT; y++)
+            {
+                for (int x = LEFT_MARGIN; x < LEFT_MARGIN + SELECTED_WIDTH; x++)
+                {
+                    Color pixel = bitmap.GetPixel(x, y);
+                    int luma = (int)Math.Round(pixel.R * 0.2126 + pixel.G * 0.7152 + pixel.B * 0.0722);
+                    histogram[luma]++;
+                }
+            }
+            return histogram;
+        }
+
+        private Dictionary<int, int> GetSortedDictionary(int[] array)
+        {
+            var dictionary = array
+                .Select((value, index) => new { value, index })
+                .ToDictionary(pair => pair.index, pair => pair.value);
+            var sortedDictionary = dictionary.OrderBy(x => x.Value).Reverse().ToDictionary(x => x.Key, x => x.Value);
+            return sortedDictionary;
+        }
+
+        private float GetWeightFromIndex(int index)
+        {
+            var weight = (float)Math.Pow(Math.Log10(index + 10), EXPONENT);
+            return weight;
         }
 
         private async Task AddImage(Station station, Images images, Status status)
@@ -128,13 +226,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
         private void SetImagesPropertiesFromStatus(Images images, Status status)
         {
-            images.CpuTemparature = status.CpuTemparature.ParseToFloat().ToString();
-            images.CameraTemparature = status.CameraTemparature.ParseToFloat().ToString();
-            images.OutcaseTemparature = status.OutcaseTemparature.ParseToFloat().ToString();
+            images.CpuTemparature = status.CpuTemparature.ToString();
+            images.CameraTemparature = status.CameraTemparature.ToString();
+            images.OutcaseTemparature = status.OutcaseTemparature.ToString();
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = status.Brightness.ParseToFloat().ToString();
+            images.Brightness = status.Brightness.ToString();
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -206,8 +304,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
         {
             var timestamps = new List<long> { long.Parse(images.RowKey) };
-            var brightnessValues = new List<float> { status.Brightness.ParseToFloat() };
-            var temperatureValues = new List<float> { status.OutcaseTemparature.ParseToFloat() };
+            var brightnessValues = new List<float> { status.Brightness };
+            var temperatureValues = new List<float> { status.OutcaseTemparature };
             var statistic = new Statistic
             {
                 PartitionKey = station.RowKey,
@@ -225,8 +323,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
             var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
             timestamps.Add(long.Parse(images.RowKey));
-            brightnessValues.Add(status.Brightness.ParseToFloat());
-            temperatureValues.Add(status.OutcaseTemparature.ParseToFloat());
+            brightnessValues.Add(status.Brightness);
+            temperatureValues.Add(status.OutcaseTemparature);
             statistic.UploadTimestamps = timestamps.ToBase64();
             statistic.BrightnessValues = brightnessValues.ToBase64();
             statistic.TemperatureValues = temperatureValues.ToBase64();
@@ -256,6 +354,18 @@ namespace EarthLat.Backend.Core.BusinessLogic
         }
 
         /// <summary>
+        /// Get a station remote config by a station id.
+        /// </summary>
+        /// <param name="stationId">The station id.</param>
+        /// <returns></returns>
+        public async Task<RemoteConfig?> GetRemoteConfigById(string stationId)
+        {
+            _tableStorageService.Init("remoteconfigs");
+            var result = await _tableStorageService.GetByFilterAsync<RemoteConfig>($"PartitionKey eq '{stationId}' and RowKey eq '{stationId}{ModelsExtensions.RemoteConfigRowKeyPostfix}'");
+            return result.FirstOrDefault();
+        }
+
+        /// <summary>
         /// Adds a new or updates an existing station remote config entry. 
         /// </summary>
         /// <param name="remoteConfig">The remote config to add or udpate.</param>
@@ -269,17 +379,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return remoteConfig;
         }
 
-        /// <summary>
-        /// Get a station remote config by a station id.
-        /// </summary>
-        /// <param name="stationId">The station id.</param>
-        /// <returns></returns>
-        public async Task<RemoteConfig?> GetRemoteConfigById(string stationId)
-        {
-            _tableStorageService.Init("remoteconfigs");
-            var result = await _tableStorageService.GetByFilterAsync<RemoteConfig>($"PartitionKey eq '{stationId}' and RowKey eq '{stationId}{ModelsExtensions.RemoteConfigRowKeyPostfix}'");
-            return result.FirstOrDefault();
-        }
 
         /// <summary>
         /// Clean up images store.

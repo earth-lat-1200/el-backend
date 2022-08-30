@@ -12,6 +12,7 @@ using EarthLat.Backend.Function.Extension;
 using System.IO;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Extensions.Options;
+using EarthLat.Backend.Core.JWT;
 
 namespace EarthLat.Backend.Function
 {
@@ -35,8 +36,8 @@ namespace EarthLat.Backend.Function
                     s.AddLogging(c => c.AddConsole());
                     s.AddValidation();
                     s.AddCors();
-                    //s.AddSingleton<JwtGenerator>();
-                    //s.AddSingleton<JwtValidator>();
+                    s.AddSingleton<JwtGenerator>();
+                    s.AddSingleton<JwtValidator>();
                 })
                 .Build();
             host.Run();

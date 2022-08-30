@@ -15,7 +15,6 @@ namespace EarthLat.Backend.Function.Extension
         public static IServiceCollection AddValidation(this IServiceCollection services)
         {
             services.AddSingleton<IWebCamContentDtoValidator, WebCamContentDtoValidator>();
-
             return services;
         }
         public async static Task<string> GetRequestBody(this HttpRequestData request)
