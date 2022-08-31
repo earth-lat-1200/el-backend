@@ -104,7 +104,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status)
         {
             images.SetImagesRowKey();
-            var sunlitLikelyhood = GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
+            var sunlitLikelyhood = await GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
             images.SunlitLikelyhood = sunlitLikelyhood.ToString();
             await AddImage(station, images, status);
             await UpdateStatistics(station, images, status);
@@ -232,7 +232,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = status.Brightness.ToString();
+            images.Brightness = status.Brightness;
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -304,7 +304,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
         {
             var timestamps = new List<long> { long.Parse(images.RowKey) };
-            var brightnessValues = new List<float> { status.Brightness };
+            //var brightnessValues = new List<float> { status.Brightness };
+            var brightnessValues = new List<float> {0};
             var temperatureValues = new List<float> { status.OutcaseTemparature };
             var statistic = new Statistic
             {
@@ -323,7 +324,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
             var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
             timestamps.Add(long.Parse(images.RowKey));
-            brightnessValues.Add(status.Brightness);
+            //brightnessValues.Add(status.Brightness);
+            brightnessValues.Add(0);
             temperatureValues.Add(status.OutcaseTemparature);
             statistic.UploadTimestamps = timestamps.ToBase64();
             statistic.BrightnessValues = brightnessValues.ToBase64();
