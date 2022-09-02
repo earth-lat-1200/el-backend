@@ -204,7 +204,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 dtos.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues)
+                    Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues,referenceDate)
                 });
             }
             return dtos;
