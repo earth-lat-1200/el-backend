@@ -123,11 +123,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     var sunlitLikelyhood = CalculateSunlitLikelyhood(refernceImage, compareImage);
                     return sunlitLikelyhood;
                 }
-                return 50.0f;
+                return .5f;
             }
             catch (Exception)
             {
-                return 50.0f;
+                return .5f;
             }
         }
         private async Task<byte[]> GetReferenceImage(string stationName)
@@ -137,11 +137,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var station = (await _tableStorageService
                 .GetByFilterAsync<Station>(query))
                 .FirstOrDefault();
-            if (station.RefernceImage == null)
+            if (station.ReferenceImage == null)
             {
                 return null;
             }
-            return CompressionHelper.DecompressBytes(station.RefernceImage);
+            return CompressionHelper.DecompressBytes(station.ReferenceImage);
 
         }
         private Bitmap GetBitmapFromBytes(byte[] image)
@@ -167,8 +167,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 var compareElement = compareDictionary.ElementAt(i);
                 var referenceProduct = refernceElement.Key * refernceElement.Value;
                 var compareProduct = compareElement.Key * compareElement.Value;
-                var differnece = compareProduct - referenceProduct;
-                var weightedDiffenerce = (differnece) * GetWeightFromIndex(i);
+                var difference = compareProduct - referenceProduct;
+                var weightedDiffenerce = (difference) * GetWeightFromIndex(i);
                 total += weightedDiffenerce;
             }
             total = total / (IMG_PIXEL_COUNT * PIXEL_COUNT);

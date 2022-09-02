@@ -11,37 +11,42 @@ namespace EarthLat.Backend.Core.Extensions
 {
     public static class StatisticExtensions
     {
-        public static int GetSecondsStartTime(this DateTime date, int timezoneOffset)
+        public static int GetSecondsSinceStartTime(this DateTime date, int timezoneOffset, string referenceDate)
         {
-            var cleanedStartDate = date.Date.AddDays(-1);
-            var totalSeconds = date.AddMinutes(timezoneOffset).Subtract(cleanedStartDate);
-            return (int) totalSeconds.TotalSeconds;
+            var startDate = referenceDate.GetStartDate();
+            var totalSeconds = date.AddMinutes(timezoneOffset).Subtract(startDate);
+            return (int)totalSeconds.TotalSeconds;
         }
-        public static DateTime GetDateTimeFromTimestamp(this long timestamp)
+
+        public static DateTime GetStartDate(this string referenceDate)
+        {
+            return DateTime.ParseExact(referenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None)
+                .Date.AddDays(-1);
+        }
+        public static DateTime GetDateTime(this long timestamp)
         {
             return DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
         }
 
-        public static (string?, string?) GetHeaders(this HttpHeadersCollection headers)
-        {
-            var referenceDateTime = headers.FirstOrDefault(x => x.Key == "referencedatetime");
-            var timezoneOffset = headers.FirstOrDefault(x => x.Key == "timezoneoffset");
-            return (referenceDateTime.Value.FirstOrDefault(), timezoneOffset.Value.FirstOrDefault());
-        }
-
         public static bool AreValidHeaders(this HttpHeadersCollection headers)
         {
-            var (referenceDateTime, timezoneOffset) = headers.GetHeaders();
-            if (referenceDateTime == null || timezoneOffset == null)
+            var (referenceDate, timezoneOffset) = headers.GetHeaders();
+            if (referenceDate == null || timezoneOffset == null)
             {
                 return false;
             }
-            if (!DateTime.TryParseExact(referenceDateTime, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            if (!DateTime.TryParseExact(referenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                        DateTimeStyles.None, out _) || !int.TryParse(timezoneOffset, out _))
             {
                 return false;
             }
             return true;
+        }
+        public static (string?, string?) GetHeaders(this HttpHeadersCollection headers)
+        {
+            var referenceDate = headers.FirstOrDefault(x => x.Key == "referencedate");
+            var timezoneOffset = headers.FirstOrDefault(x => x.Key == "timezoneoffset");
+            return (referenceDate.Value.FirstOrDefault(), timezoneOffset.Value.FirstOrDefault());
         }
 
         public static string ToBase64(this object toConvert)
@@ -50,7 +55,6 @@ namespace EarthLat.Backend.Core.Extensions
             new BinaryFormatter().Serialize(ms, toConvert);
             return Convert.ToBase64String(ms.ToArray());
         }
-
         public static T FromBase64<T>(this string toConvert)
         {
             byte[] bytes = Convert.FromBase64String(toConvert);

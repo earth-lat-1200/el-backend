@@ -48,14 +48,13 @@ namespace EarthLat.Backend.Function
             {
                 string requestBody = await request.GetRequestBody();
                 var credentials = JsonConvert.DeserializeObject<UserCredentials>(requestBody);
-                var userDto = statisticService.AuthenticateAsync(credentials).Result;
+                var userDto = await statisticService.AuthenticateAsync(credentials);
                 return (userDto == null)
                     ? new UnauthorizedObjectResult("Username or Password not found")
                     : new OkObjectResult(userDto);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e.StackTrace);
                 return new NotFoundResult();
             }
         }
@@ -80,14 +79,14 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
+                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
                 var sendTimes = await statisticService.GetSendTimesAsync(
                     validator,
-                    referenceDateTime,
+                    referenceDate,
                     int.Parse(timezoneOffset));
-                if (sendTimes == null)
-                    return new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE);
-                return new OkObjectResult(sendTimes);
+                return (sendTimes == null)
+                    ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
+                    : new OkObjectResult(sendTimes);
             }
             catch (Exception e)
             {
@@ -115,14 +114,14 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
+                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
                 var brightnessValues = await statisticService.GetTemperatrueValuesPerHourAsync(
                     validator,
-                    referenceDateTime,
+                    referenceDate,
                     int.Parse(timezoneOffset));
-                if (brightnessValues == null)
-                    return new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE);
-                return new OkObjectResult(brightnessValues);
+                return (brightnessValues == null)
+                    ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
+                    : new OkObjectResult(brightnessValues);
             }
             catch (Exception e)
             {
@@ -150,14 +149,14 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
+                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
                 var sendTimes = await statisticService.GetImagesPerHourAsync(
                     validator,
-                    referenceDateTime,
+                    referenceDate,
                     int.Parse(timezoneOffset));
-                if (sendTimes == null)
-                    return new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE);
-                return new OkObjectResult(sendTimes);
+                return (sendTimes == null)
+                    ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
+                    : new OkObjectResult(sendTimes);
             }
             catch (Exception e)
             {
@@ -185,14 +184,14 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var (referenceDateTime, timezoneOffset) = request.Headers.GetHeaders();
+                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
                 var brightnessValues = await statisticService.GetBrightnessValuesPerHourAsync(
                     validator,
-                    referenceDateTime,
+                    referenceDate,
                     int.Parse(timezoneOffset));
-                if (brightnessValues == null)
-                    return new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE);
-                return new OkObjectResult(brightnessValues);
+                return (brightnessValues == null)
+                    ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
+                    : new OkObjectResult(brightnessValues);
             }
             catch (Exception e)
             {
