@@ -19,7 +19,7 @@ namespace EarthLat.Backend.Core.Models
         public string? TeamName { get; set; }
         public string? NearbyPublicInstitute { get; set; }
         public string? OrganizationalForm { get; set; }
-        public byte[]? RefernceImage { get; set; }
+        public byte[]? ReferenceImage { get; set; }
 
 
         public string PartitionKey { get; set; } = "station";

@@ -60,13 +60,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
-                var startDate = timestamps.FirstOrDefault().GetDateTimeFromTimestamp();
-                var endDate = timestamps.LastOrDefault().GetDateTimeFromTimestamp();
+                var startDate = timestamps.FirstOrDefault().GetDateTime();
+                var endDate = timestamps.LastOrDefault().GetDateTime();
                 dtos.Add(new BarChartDto
                 {
                     Name = station.Item2,
-                    Start = startDate.GetSecondsStartTime(timezoneOffset),
-                    End = endDate.GetSecondsStartTime(timezoneOffset)
+                    Start = startDate.GetSecondsSinceStartTime(timezoneOffset,referenceDate),
+                    End = endDate.GetSecondsSinceStartTime(timezoneOffset, referenceDate)
                 });
             }
             return dtos;
@@ -104,22 +104,22 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
-                    .Select(x => x.GetDateTimeFromTimestamp().AddMinutes(timezoneOffset))
+                    .Select(x => x.GetDateTime().AddMinutes(timezoneOffset))
                     .ToArray();
                 var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>()
                     .ToArray();
                 dtos.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = GetCoordinatesFromFloatArray(timestamps, temperatureValues)
+                    Values = GetCoordinatesFromFloatArray(timestamps, temperatureValues,referenceDate)
                 });
             }
             return dtos;
         }
 
-        private double[] GetCoordinatesFromFloatArray(DateTime[] timestamps, float[] floatValues)
+        private double[] GetCoordinatesFromFloatArray(DateTime[] timestamps, float[] floatValues, string referenceDate)
         {
-            var startDate = timestamps[0].Date.AddDays(-1).AddMinutes(-30);
+            var startDate = referenceDate.GetStartDate().AddMinutes(-30); ;
             var tempCoordinates = new List<double>[COORDINATES_LENGTH];
             for (int i = 0; i < COORDINATES_LENGTH; i++)
             {
@@ -159,20 +159,20 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
-                    .Select(x => x.GetDateTimeFromTimestamp().AddMinutes(
+                    .Select(x => x.GetDateTime().AddMinutes(
                         timezoneOffset))
                     .ToArray();
                 dtos.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = GetCoordinatesFromTimestamps(timestamps)
+                    Values = GetCoordinatesFromTimestamps(timestamps, referenceDate)
                 });
             }
             return dtos;
         }
-        private double[] GetCoordinatesFromTimestamps(DateTime[] timestamps)
+        private double[] GetCoordinatesFromTimestamps(DateTime[] timestamps, string referenceDate)
         {
-            var startDate = timestamps[0].Date.AddDays(-1).AddMinutes(-30);
+            var startDate = referenceDate.GetStartDate().AddMinutes(-30);
             var coordinates = new double[COORDINATES_LENGTH];
             foreach (var timestamp in timestamps)
             {
@@ -197,14 +197,14 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
-                    .Select(x => x.GetDateTimeFromTimestamp().AddMinutes(timezoneOffset))
+                    .Select(x => x.GetDateTime().AddMinutes(timezoneOffset))
                     .ToArray();
                 var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>()
                     .ToArray();
                 dtos.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues)
+                    Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues,referenceDate)
                 });
             }
             return dtos;

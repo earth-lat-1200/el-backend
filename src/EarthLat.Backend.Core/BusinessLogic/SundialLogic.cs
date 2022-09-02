@@ -123,11 +123,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     var sunlitLikelyhood = CalculateSunlitLikelyhood(refernceImage, compareImage);
                     return sunlitLikelyhood;
                 }
-                return 50.0f;
+                return .5f;
             }
             catch (Exception)
             {
-                return 50.0f;
+                return .5f;
             }
         }
         private async Task<byte[]> GetReferenceImage(string stationName)
@@ -137,11 +137,11 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var station = (await _tableStorageService
                 .GetByFilterAsync<Station>(query))
                 .FirstOrDefault();
-            if (station.RefernceImage == null)
+            if (station.ReferenceImage == null)
             {
                 return null;
             }
-            return CompressionHelper.DecompressBytes(station.RefernceImage);
+            return CompressionHelper.DecompressBytes(station.ReferenceImage);
 
         }
         private Bitmap GetBitmapFromBytes(byte[] image)
@@ -167,8 +167,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 var compareElement = compareDictionary.ElementAt(i);
                 var referenceProduct = refernceElement.Key * refernceElement.Value;
                 var compareProduct = compareElement.Key * compareElement.Value;
-                var differnece = compareProduct - referenceProduct;
-                var weightedDiffenerce = (differnece) * GetWeightFromIndex(i);
+                var difference = compareProduct - referenceProduct;
+                var weightedDiffenerce = (difference) * GetWeightFromIndex(i);
                 total += weightedDiffenerce;
             }
             total = total / (IMG_PIXEL_COUNT * PIXEL_COUNT);
@@ -232,7 +232,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = status.Brightness.ToString();
+            images.Brightness = status.Brightness;
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -304,7 +304,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
         {
             var timestamps = new List<long> { long.Parse(images.RowKey) };
-            var brightnessValues = new List<float> { status.Brightness };
+            //var brightnessValues = new List<float> { status.Brightness };
+            var brightnessValues = new List<float> {0};
             var temperatureValues = new List<float> { status.OutcaseTemparature };
             var statistic = new Statistic
             {
@@ -323,7 +324,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
             var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
             timestamps.Add(long.Parse(images.RowKey));
-            brightnessValues.Add(status.Brightness);
+            //brightnessValues.Add(status.Brightness);
+            brightnessValues.Add(0);
             temperatureValues.Add(status.OutcaseTemparature);
             statistic.UploadTimestamps = timestamps.ToBase64();
             statistic.BrightnessValues = brightnessValues.ToBase64();
