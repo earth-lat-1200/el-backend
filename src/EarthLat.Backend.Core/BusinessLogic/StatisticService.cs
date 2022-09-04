@@ -15,6 +15,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly ITableStorageService _tableStorageService;
         private readonly JwtGenerator jwtGenerator;
         private readonly int COORDINATES_LENGTH = 73;//3 days + 1 hour
+        private readonly object _lock = new();
 
         public StatisticService(ILogger<StatisticService> logger,
             ITableStorageService tableStorageService,
@@ -25,24 +26,27 @@ namespace EarthLat.Backend.Core.BusinessLogic
             this.jwtGenerator = jwtGenerator;
         }
 
-        public async Task<UserDto> AuthenticateAsync(UserCredentials credentials)
+        public async Task<string> AuthenticateAsync(UserCredentials credentials)
         {
-            _tableStorageService.Init("users");
             string query = $"Name eq '{credentials.Username}' and Password eq '{credentials.Password}'";
-            var users = (await _tableStorageService.GetByFilterAsync<User>(query));
+            Statistic statistic = null;
+            List<User> users = new();
+            lock (_lock)
+            {
+                _tableStorageService.Init("users");
+                users = (_tableStorageService.GetByFilterAsync<User>(query).Result).ToList();
+            }
             var user = users.FirstOrDefault();
-            _tableStorageService.Init("stations");
-            var stations = (await _tableStorageService.GetAllAsync<Station>()).ToList();
+            List<Station> stations = null;
+            lock (_lock)
+            {
+                _tableStorageService.Init("stations");
+                stations = (_tableStorageService.GetAllAsync<Station>().Result).ToList();
+            }
             if (user == null || stations == null)
                 return null;
             var userStation = stations.Find(x => x.RowKey == user.PartitionKey);
-            return new UserDto
-            {
-                Name = user.Name,
-                Privilege = user.Privilege,
-                Token = jwtGenerator.GenerateJWT(user),
-                StationName = (userStation != null) ? userStation.StationName : null
-            };
+            return jwtGenerator.GenerateJWT(user);
         }
 
         public async Task<List<BarChartDto>> GetSendTimesAsync
@@ -50,13 +54,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             List<BarChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
-            _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
                 var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                var statistic = (await _tableStorageService
-                    .GetByFilterAsync<Statistic>(query))
-                    .FirstOrDefault();
+                Statistic statistic = null;
+                lock (_lock)
+                {
+                    _tableStorageService.Init("statistics");
+                    statistic = (_tableStorageService
+                        .GetByFilterAsync<Statistic>(query).Result)
+                        .FirstOrDefault();
+                }
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
@@ -65,7 +73,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 dtos.Add(new BarChartDto
                 {
                     Name = station.Item2,
-                    Start = startDate.GetSecondsSinceStartTime(timezoneOffset,referenceDate),
+                    Start = startDate.GetSecondsSinceStartTime(timezoneOffset, referenceDate),
                     End = endDate.GetSecondsSinceStartTime(timezoneOffset, referenceDate)
                 });
             }
@@ -74,14 +82,21 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
         private async Task<List<(string, string)>> GetAccessibleStations(JwtValidator validator)
         {
-            _tableStorageService.Init("stations");
             if (validator.Privilege == 0)
             {
-                return (await _tableStorageService.GetAllAsync<Station>()).Where(x => x.StationName != null).Select(x => (x.RowKey, x.StationName)).ToList();
+                lock (_lock)
+                {
+                    _tableStorageService.Init("stations");
+                    return (_tableStorageService.GetAllAsync<Station>().Result).Where(x => x.StationName != null).Select(x => (x.RowKey, x.StationName)).ToList();
+                }
             }
             string query = $"RowKey eq '{validator.Station}'";
-            var stations = (await _tableStorageService
-                .GetByFilterAsync<Station>(query));
+            List<Station> stations = null;
+            lock (_lock)
+            {
+                _tableStorageService.Init("stations");
+                stations = (_tableStorageService.GetByFilterAsync<Station>(query).Result).ToList();
+            }
             if (stations == null)
                 return new List<(string, string)>();
             var station = stations.FirstOrDefault();
@@ -94,13 +109,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             List<LineChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
-            _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
                 var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                var statistic = (await _tableStorageService
-                    .GetByFilterAsync<Statistic>(query))
-                    .FirstOrDefault();
+                Statistic statistic = null;
+                lock (_lock)
+                {
+                    _tableStorageService.Init("statistics");
+                    statistic = (_tableStorageService
+                        .GetByFilterAsync<Statistic>(query).Result)
+                        .FirstOrDefault();
+                }
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
@@ -111,7 +130,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 dtos.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = GetCoordinatesFromFloatArray(timestamps, temperatureValues,referenceDate)
+                    Values = GetCoordinatesFromFloatArray(timestamps, temperatureValues, referenceDate)
                 });
             }
             return dtos;
@@ -149,13 +168,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             List<LineChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
-            _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
                 var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                var statistic = (await _tableStorageService
-                    .GetByFilterAsync<Statistic>(query))
-                    .FirstOrDefault();
+                Statistic statistic = null;
+                lock (_lock)
+                {
+                    _tableStorageService.Init("statistics");
+                    statistic = (_tableStorageService
+                        .GetByFilterAsync<Statistic>(query).Result)
+                        .FirstOrDefault();
+                }
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
@@ -187,13 +210,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             List<LineChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
-            _tableStorageService.Init("statistics");
             foreach (var station in stations)
             {
                 var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                var statistic = (await _tableStorageService
-                    .GetByFilterAsync<Statistic>(query))
-                    .FirstOrDefault();
+                Statistic statistic = null;
+                lock (_lock)
+                {
+                    _tableStorageService.Init("statistics");
+                    statistic = (_tableStorageService
+                        .GetByFilterAsync<Statistic>(query).Result)
+                        .FirstOrDefault();
+                }
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
@@ -204,7 +231,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 dtos.Add(new LineChartDto
                 {
                     Name = station.Item2,
-                    Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues,referenceDate)
+                    Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues, referenceDate)
                 });
             }
             return dtos;
