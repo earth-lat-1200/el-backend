@@ -119,7 +119,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
         private double[] GetCoordinatesFromFloatArray(DateTime[] timestamps, float[] floatValues, string referenceDate)
         {
-            var startDate = referenceDate.GetStartDate().AddMinutes(-30); ;
+            var startDate = referenceDate.GetStartDate().AddMinutes(-30);
             var tempCoordinates = new List<double>[COORDINATES_LENGTH];
             for (int i = 0; i < COORDINATES_LENGTH; i++)
             {
