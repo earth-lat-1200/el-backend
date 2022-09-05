@@ -105,13 +105,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status, string requestBody)
         {
             var obj = JsonConvert.DeserializeObject<dynamic>(requestBody);
-            string statusString = obj.status;
+            string statusString = Convert.ToString(obj.status);
             images.SetImagesRowKey();
             var sunlitLikelyhood = await GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
             images.SunlitLikelyhood = sunlitLikelyhood.ToString();
             await AddImage(station, images, status, statusString);
             await UpdateStatistics(station, images, status);
-            return null; await GetRemoteConfig(station);
+            return await GetRemoteConfig(station);
         }
 
         private async Task<float> GetSunlitLikelyhood(byte[] image, string stationName)
