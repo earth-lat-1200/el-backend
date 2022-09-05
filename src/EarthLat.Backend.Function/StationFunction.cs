@@ -82,9 +82,7 @@ namespace EarthLat.Backend.Function
                 var header = request.GetHeaderKey();
                 await _keyManagementService.CheckPermission(header, stationId);
 
-                string requestBody = string.Empty;
-                using (StreamReader streamReader = new(request.Body))
-                    requestBody = await streamReader.ReadToEndAsync();
+                string requestBody = await request.GetRequestBody();
                 var webCamContent = JsonConvert.DeserializeObject<WebCamContentDto>(requestBody);
 
                 if (webCamContent.StationId.ToLower() != stationId.ToLower())
@@ -99,7 +97,7 @@ namespace EarthLat.Backend.Function
                 var image = _mapper.Map<Images>(webCamContent);
                 var status = _mapper.Map<Status>(webCamContent.Status);
 
-                var remoteConfig = await _sundialLogic.AddAsync(station, image, status);
+                var remoteConfig = await _sundialLogic.AddAsync(station, image, status, requestBody);
 
                 return new OkObjectResult(remoteConfig);
             }

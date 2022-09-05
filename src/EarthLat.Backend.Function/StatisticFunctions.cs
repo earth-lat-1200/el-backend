@@ -37,21 +37,21 @@ namespace EarthLat.Backend.Function
         [Function(nameof(Authenticate))]
         [OpenApiRequestBody("applicaton/json", typeof(UserCredentials), Description = "Contains username and password of the user who attempts to login")]
         [OpenApiOperation(operationId: nameof(Authenticate), tags: new[] { "Frontend API" }, Summary = "Authenticate the user")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserDto), Description = "The user matching the credentials")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(string), Description = "The JWT of the user matching the credentials")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<UserDto>> Authenticate(
+        public async Task<ActionResult<string>> Authenticate(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "Authenticate")] HttpRequestData request)
         {
             try
             {
                 string requestBody = await request.GetRequestBody();
                 var credentials = JsonConvert.DeserializeObject<UserCredentials>(requestBody);
-                var userDto = await statisticService.AuthenticateAsync(credentials);
-                return (userDto == null)
+                var jwt = await statisticService.AuthenticateAsync(credentials);
+                return (jwt == null)
                     ? new UnauthorizedObjectResult("Username or Password not found")
-                    : new OkObjectResult(userDto);
+                    : new OkObjectResult(jwt);
             }
             catch (Exception)
             {

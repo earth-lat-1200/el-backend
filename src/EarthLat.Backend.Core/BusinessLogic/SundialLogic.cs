@@ -5,6 +5,7 @@ using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.Models;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System.Drawing;
 
 namespace EarthLat.Backend.Core.BusinessLogic
@@ -101,21 +102,23 @@ namespace EarthLat.Backend.Core.BusinessLogic
         /// <param name="station">The station.</param>
         /// <param name="images">The images.</param>
         /// <returns></returns>
-        public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status)
+        public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status, string requestBody)
         {
+            var obj = JsonConvert.DeserializeObject<dynamic>(requestBody);
+            string statusString = obj.status;
             images.SetImagesRowKey();
             var sunlitLikelyhood = await GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
             images.SunlitLikelyhood = sunlitLikelyhood.ToString();
-            await AddImage(station, images, status);
+            await AddImage(station, images, status, statusString);
             await UpdateStatistics(station, images, status);
-            return await GetRemoteConfig(station);
+            return null; await GetRemoteConfig(station);
         }
 
         private async Task<float> GetSunlitLikelyhood(byte[] image, string stationName)
         {
             try
             {
-                var referenceByteArray = await GetReferenceImage(stationName);
+                var referenceByteArray = CompressionHelper.DecompressBytes(await GetReferenceImage(stationName));
                 if (referenceByteArray != null)
                 {
                     Bitmap refernceImage = GetBitmapFromBytes(referenceByteArray);
@@ -141,7 +144,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             {
                 return null;
             }
-            return CompressionHelper.DecompressBytes(station.ReferenceImage);
+            return station.ReferenceImage;
 
         }
         private Bitmap GetBitmapFromBytes(byte[] image)
@@ -206,12 +209,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return weight;
         }
 
-        private async Task AddImage(Station station, Images images, Status status)
+        private async Task AddImage(Station station, Images images, Status status, string statusString)
         {
             station.LastImageKey = images.RowKey;
             _tableStorageService.Init("stations");
+            station.ReferenceImage = await GetReferenceImage(station.RowKey);
             await _tableStorageService.AddOrUpdateAsync(station);
-            SetImagesPropertiesFromStatus(images, status);
+            SetImagesPropertiesFromStatus(images, status, statusString);
             if (images?.ImgDetail is not null)
             {
                 CompressImagesDetail(images);
@@ -224,7 +228,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             await _tableStorageService.AddAsync(images);
         }
 
-        private void SetImagesPropertiesFromStatus(Images images, Status status)
+        private void SetImagesPropertiesFromStatus(Images images, Status status, string statusString)
         {
             images.CpuTemparature = status.CpuTemparature.ToString();
             images.CameraTemparature = status.CameraTemparature.ToString();
@@ -232,7 +236,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = status.Brightness;
+            images.Brightness = statusString;
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -305,7 +309,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             var timestamps = new List<long> { long.Parse(images.RowKey) };
             //var brightnessValues = new List<float> { status.Brightness };
-            var brightnessValues = new List<float> {0};
+            var brightnessValues = new List<float> { 0 };
             var temperatureValues = new List<float> { status.OutcaseTemparature };
             var statistic = new Statistic
             {
