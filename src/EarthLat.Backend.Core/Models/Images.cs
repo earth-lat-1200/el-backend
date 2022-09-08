@@ -25,7 +25,7 @@ namespace EarthLat.Backend.Core.Models
         public bool Sunny { get; set; }
         public bool Cloudy { get; set; }
         public bool Night { get; set; }
-        public string SunlitLikelyhood { get; set; }
+        public string SunlitLikelihood { get; set; }
 
         // StationId
         public string PartitionKey { get; set; }

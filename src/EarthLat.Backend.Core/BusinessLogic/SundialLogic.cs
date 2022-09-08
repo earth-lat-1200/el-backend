@@ -102,19 +102,17 @@ namespace EarthLat.Backend.Core.BusinessLogic
         /// <param name="station">The station.</param>
         /// <param name="images">The images.</param>
         /// <returns></returns>
-        public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status, string requestBody)
+        public async Task<RemoteConfig> AddAsync(Station station, Images images, Status status)
         {
-            var obj = JsonConvert.DeserializeObject<dynamic>(requestBody);
-            string statusString = Convert.ToString(obj.Status);
             images.SetImagesRowKey();
-            var sunlitLikelyhood = await GetSunlitLikelyhood(images.ImgTotal, station.RowKey);
-            images.SunlitLikelyhood = sunlitLikelyhood.ToString();
-            await AddImage(station, images, status, statusString);
+            var sunlitLikelyhood = await GetSunlitLikelihood(images.ImgTotal, station.RowKey);
+            images.SunlitLikelihood = sunlitLikelyhood.ToString();
+            await AddImage(station, images, status);
             await UpdateStatistics(station, images, status);
             return await GetRemoteConfig(station);
         }
 
-        private async Task<float> GetSunlitLikelyhood(byte[] image, string stationName)
+        private async Task<float> GetSunlitLikelihood(byte[] image, string stationName)
         {
             try
             {
@@ -123,7 +121,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 {
                     Bitmap refernceImage = GetBitmapFromBytes(referenceByteArray);
                     Bitmap compareImage = GetBitmapFromBytes(image);
-                    var sunlitLikelyhood = CalculateSunlitLikelyhood(refernceImage, compareImage);
+                    var sunlitLikelyhood = CalculateSunlitLikelihood(refernceImage, compareImage);
                     return sunlitLikelyhood;
                 }
                 return .5f;
@@ -140,7 +138,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var station = (await _tableStorageService
                 .GetByFilterAsync<Station>(query))
                 .FirstOrDefault();
-            if (station.ReferenceImage == null)
+            if (station == null)
             {
                 return null;
             }
@@ -157,7 +155,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return bm;
         }
 
-        private float CalculateSunlitLikelyhood(Bitmap refernceImage, Bitmap compareImage)
+        private float CalculateSunlitLikelihood(Bitmap refernceImage, Bitmap compareImage)
         {
             int[] referenceHistogram = GetHistogramFromBitmap(refernceImage);
             int[] compareHistogram = GetHistogramFromBitmap(compareImage);
@@ -175,8 +173,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 total += weightedDiffenerce;
             }
             total = total / (IMG_PIXEL_COUNT * PIXEL_COUNT);
-            float sunlitLikelyhood = (float)((total + 1) / 2);
-            return sunlitLikelyhood;
+            float sunlitLikelihood = (float)((total + 1) / 2);
+            return sunlitLikelihood;
         }
 
         private int[] GetHistogramFromBitmap(Bitmap bitmap)
@@ -209,13 +207,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return weight;
         }
 
-        private async Task AddImage(Station station, Images images, Status status, string statusString)
+        private async Task AddImage(Station station, Images images, Status status)
         {
             station.LastImageKey = images.RowKey;
             _tableStorageService.Init("stations");
             station.ReferenceImage = await GetReferenceImage(station.RowKey);
             await _tableStorageService.AddOrUpdateAsync(station);
-            SetImagesPropertiesFromStatus(images, status, statusString);
+            SetImagesPropertiesFromStatus(images, status);
             if (images?.ImgDetail is not null)
             {
                 CompressImagesDetail(images);
@@ -228,7 +226,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             await _tableStorageService.AddAsync(images);
         }
 
-        private void SetImagesPropertiesFromStatus(Images images, Status status, string statusString)
+        private void SetImagesPropertiesFromStatus(Images images, Status status)
         {
             images.CpuTemparature = status.CpuTemparature.ToString();
             images.CameraTemparature = status.CameraTemparature.ToString();
@@ -236,7 +234,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.SwVersion = status.SwVersion;
             images.CaptureTime = status.CaptureTime;
             images.CaptureLat = status.CaptureLat;
-            images.Brightness = statusString;
+            images.Brightness = status.Brightness.ToString();
             images.Sunny = status.Sunny;
             images.Cloudy = status.Cloudy;
             images.Night = status.Night;
@@ -308,8 +306,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
         {
             var timestamps = new List<long> { long.Parse(images.RowKey) };
-            //var brightnessValues = new List<float> { status.Brightness };
-            var brightnessValues = new List<float> { 0 };
+            var brightnessValues = new List<float> { status.Brightness };
             var temperatureValues = new List<float> { status.OutcaseTemparature };
             var statistic = new Statistic
             {
@@ -328,8 +325,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
             var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
             timestamps.Add(long.Parse(images.RowKey));
-            //brightnessValues.Add(status.Brightness);
-            brightnessValues.Add(0);
+            brightnessValues.Add(status.Brightness);
             temperatureValues.Add(status.OutcaseTemparature);
             statistic.UploadTimestamps = timestamps.ToBase64();
             statistic.BrightnessValues = brightnessValues.ToBase64();

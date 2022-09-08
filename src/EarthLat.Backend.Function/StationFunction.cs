@@ -97,7 +97,7 @@ namespace EarthLat.Backend.Function
                 var image = _mapper.Map<Images>(webCamContent);
                 var status = _mapper.Map<Status>(webCamContent.Status);
 
-                var remoteConfig = await _sundialLogic.AddAsync(station, image, status, requestBody);
+                var remoteConfig = await _sundialLogic.AddAsync(station, image, status);
 
                 return new OkObjectResult(remoteConfig);
             }

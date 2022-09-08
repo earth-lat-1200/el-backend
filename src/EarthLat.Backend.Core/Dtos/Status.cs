@@ -8,7 +8,7 @@
         public float CpuTemparature { get; set; }
         public float CameraTemparature { get; set; }
         public float OutcaseTemparature { get; set; }
-        public string Brightness { get; set; }
+        public float Brightness { get; set; }
         public bool Sunny { get; set; }
         public bool Cloudy { get; set; }
         public bool Night { get; set; }
