@@ -14,7 +14,9 @@ namespace EarthLat.Backend.Core.Extensions
         public static int GetSecondsSinceStartTime(this DateTime date, int timezoneOffset, string referenceDate)
         {
             var startDate = referenceDate.GetStartDate();
-            var totalSeconds = date.AddMinutes(timezoneOffset).Subtract(startDate);
+            var totalSeconds = date
+                .AddMinutes(timezoneOffset)
+                .Subtract(startDate);
             return (int)totalSeconds.TotalSeconds;
         }
 
