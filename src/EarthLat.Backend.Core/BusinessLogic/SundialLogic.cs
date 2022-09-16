@@ -25,6 +25,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private static readonly int SELECTED_WIDTH = 450;
         private static readonly int IMG_PIXEL_COUNT = SELECTED_HEIGHT * SELECTED_WIDTH;
         private static readonly double EXPONENT = 7831216639287 / 10000000000000;
+        private static readonly int MAX_LAT_OFFSET = 180;
 
         public SundialLogic(ILogger<ISundialLogic> logger,
             ITableStorageService tableStorageService)
@@ -37,7 +38,27 @@ namespace EarthLat.Backend.Core.BusinessLogic
             _tableStorageService.Init("stations");
             var stations = (await _tableStorageService.GetAllAsync<Station>()).ToList();
             stations.RemoveAll(x => !x.IsActive);
+            stations.RemoveAll(x => x.StationName == null);
             return stations;
+        }
+
+        public async Task<Station> GetLandingStation(float longitude)
+        {
+            var stations = await GetAllStationsAsync();
+            Station toReturn = stations.FirstOrDefault();
+            foreach (var station in stations)
+            {
+                var currentImg = await GetLatestImagesByIdAsync(station.RowKey);
+                var prevImg = await GetLatestImagesByIdAsync(toReturn.RowKey);
+                var currentOffset = MAX_LAT_OFFSET - Math.Abs(station.Longitude - longitude);
+                var prevOffset = MAX_LAT_OFFSET - Math.Abs(toReturn.Longitude - longitude);
+                if (currentImg.SunlitLikelihood.ParseToFloat() * currentOffset >
+                    prevImg.SunlitLikelihood.ParseToFloat() * prevOffset)
+                {
+                    toReturn = station;
+                }
+            }
+            return toReturn;
         }
 
         /// <summary>

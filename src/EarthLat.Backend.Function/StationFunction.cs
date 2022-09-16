@@ -63,6 +63,29 @@ namespace EarthLat.Backend.Function
                 : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
         }
 
+        [Function(nameof(GetLandingStation))]
+        [OpenApiOperation(operationId: nameof(GetLandingStation), tags: new[] { "Frontend API" }, Summary = "Gets the landing station.", Description = "Then landing station is determined by the distance to the noon meridian and the sunlitLikelihood.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(StationInfoDto), Description = "A stations in the system.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
+        public async Task<ActionResult<StationInfoDto>> GetLandingStation(
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
+        {
+            var longitude = request.Headers.FirstOrDefault(x => x.Key == "longitude").Value.FirstOrDefault();
+            if (!float.TryParse(longitude.Replace(".", ","), out _))
+            {
+                return new NotFoundResult();
+            }
+
+            Station result = (await _sundialLogic.GetLandingStation(float.Parse(longitude.Replace(".", ","))));
+
+            return (result is null)
+                ? new NotFoundResult()
+                : new OkObjectResult(_mapper.Map<StationInfoDto>(result));
+        }
+
         [Function(nameof(PushStationInfos))]
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" },
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]

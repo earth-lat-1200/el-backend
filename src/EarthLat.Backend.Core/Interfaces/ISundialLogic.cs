@@ -6,6 +6,7 @@ namespace EarthLat.Backend.Core.Interfaces
     public interface ISundialLogic
     {
         Task<IEnumerable<Station>> GetAllStationsAsync();
+        Task<Station> GetLandingStation(float longitude);
         Task<Images> GetLatestImagesByIdAsync(string stationId);
         Task<Station> GetStationByIdAsync(string stationId);
         Task<RemoteConfig> AddAsync(Station station, Images images, Status status);

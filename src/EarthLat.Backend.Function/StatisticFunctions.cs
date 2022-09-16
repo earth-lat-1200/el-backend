@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using EarthLat.Backend.Core.BusinessLogic;
@@ -8,15 +7,11 @@ using EarthLat.Backend.Core.Models;
 using EarthLat.Backend.Core.Extensions;
 using EarthLat.Backend.Core.Dtos;
 using EarthLat.Backend.Function.Extension;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System.Linq;
-using System.ComponentModel.DataAnnotations;
 using EarthLat.Backend.Core.JWT;
 
 namespace EarthLat.Backend.Function
