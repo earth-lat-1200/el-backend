@@ -58,32 +58,17 @@ namespace EarthLat.Backend.Function
         {
             List<Station> result = (await _sundialLogic.GetAllStationsAsync()).ToList();
 
-            return result is null || result?.Count < 1
-                ? new NotFoundResult()
-                : new OkObjectResult(_mapper.Map<IEnumerable<StationInfoDto>>(result));
-        }
+            var toReturn = _mapper.Map<IEnumerable<StationInfoDto>>(result);
 
-        [Function(nameof(GetLandingStation))]
-        [OpenApiOperation(operationId: nameof(GetLandingStation), tags: new[] { "Frontend API" }, Summary = "Gets the landing station.", Description = "Then landing station is determined by the distance to the noon meridian and the sunlitLikelihood.")]
-        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(StationInfoDto), Description = "A stations in the system.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
-        public async Task<ActionResult<StationInfoDto>> GetLandingStation(
-            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
-        {
-            var longitude = request.Headers.FirstOrDefault(x => x.Key == "longitude").Value.FirstOrDefault();
-            if (!float.TryParse(longitude.Replace(".", ","), out _))
+            foreach(var stationInfoDto in toReturn)
             {
-                return new NotFoundResult();
+                var sunlitLikelihood = (await _sundialLogic.GetLatestImagesById(stationInfoDto.StationId)).SunlitLikelihood.Replace(".", ",");
+                stationInfoDto.SunlitLikelihood = float.Parse(sunlitLikelihood);
             }
 
-            Station result = (await _sundialLogic.GetLandingStation(float.Parse(longitude.Replace(".", ","))));
-
-            return (result is null)
+            return result is null || result?.Count < 1
                 ? new NotFoundResult()
-                : new OkObjectResult(_mapper.Map<StationInfoDto>(result));
+                : new OkObjectResult(toReturn);
         }
 
         [Function(nameof(PushStationInfos))]
@@ -179,7 +164,7 @@ namespace EarthLat.Backend.Function
                        .BindingData["stationId"]
                        .ToString();
 
-            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
+            var images = await _sundialLogic.GetLatestCombinedImagesByIdAsync(id);
             byte[] image = imageType == "detail" ? images?.ImgDetail : images?.ImgTotal;
 
             return image ?? Array.Empty<byte>();
@@ -202,7 +187,7 @@ namespace EarthLat.Backend.Function
                                   .BindingData["id"]
                                   .ToString();
 
-            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
+            var images = await _sundialLogic.GetLatestCombinedImagesByIdAsync(id);
 
             return images is null ? new NotFoundResult() : new OkObjectResult(new ImgDto() { Img = images.ImgDetail });
         }
@@ -223,7 +208,7 @@ namespace EarthLat.Backend.Function
                                    .BindingContext
                                    .BindingData["id"]
                                    .ToString();
-            var images = await _sundialLogic.GetLatestImagesByIdAsync(id);
+            var images = await _sundialLogic.GetLatestCombinedImagesByIdAsync(id);
             return new OkObjectResult(images.ImgTotal);
         }
 
