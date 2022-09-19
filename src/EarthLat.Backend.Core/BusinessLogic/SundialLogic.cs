@@ -42,43 +42,15 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return stations;
         }
 
-        public async Task<Station> GetLandingStation(float longitude)
-        {
-            var stations = await GetAllStationsAsync();
-            Station toReturn = stations.FirstOrDefault();
-            foreach (var station in stations)
-            {
-                var currentImg = await GetLatestImagesByIdAsync(station.RowKey);
-                var prevImg = await GetLatestImagesByIdAsync(toReturn.RowKey);
-                var currentOffset = MAX_LAT_OFFSET - Math.Abs(station.Longitude - longitude);
-                var prevOffset = MAX_LAT_OFFSET - Math.Abs(toReturn.Longitude - longitude);
-                if (currentImg.SunlitLikelihood.ParseToFloat() * currentOffset >
-                    prevImg.SunlitLikelihood.ParseToFloat() * prevOffset)
-                {
-                    toReturn = station;
-                }
-            }
-            return toReturn;
-        }
-
         /// <summary>
         /// Gets the lastest images of a station by station identifier.
         /// </summary>
         /// <param name="stationId">The unique station identifier.</param>
         /// <returns></returns>
-        public async Task<Images> GetLatestImagesByIdAsync(string stationId)
+        public async Task<Images> GetLatestCombinedImagesByIdAsync(string stationId)
         {
-            _tableStorageService.Init("stations");
-            var station = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{stationId}'");
-            var images = new List<Images>();
-            if (station.Any())
-            {
-                var currentStation = station.First();
-                _tableStorageService.Init("images");
-                images = (await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and RowKey eq '{currentStation.LastImageKey}'")).ToList();
-            }
-            var image = images.FirstOrDefault();
 
+            var image = await GetLatestImagesById(stationId);
             if (image?.ImgTotal is not null)
             {
                 if (image.ImgTotalv2 is not null)
@@ -98,6 +70,20 @@ namespace EarthLat.Backend.Core.BusinessLogic
             }
 
             return image;
+        }
+
+        public async Task<Images> GetLatestImagesById(string stationId)
+        {
+            _tableStorageService.Init("stations");
+            var stations = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{stationId}'");
+            var images = new List<Images>();
+            if (stations.Any())
+            {
+                var currentStation = stations.First();
+                _tableStorageService.Init("images");
+                images = (await _tableStorageService.GetByFilterAsync<Images>($"PartitionKey eq '{stationId}' and RowKey eq '{currentStation.LastImageKey}'")).ToList();
+            }
+            return images.FirstOrDefault();
         }
 
         private static byte[] Combine(byte[] first, byte[] second)
