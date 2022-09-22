@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace EarthLat.Backend.Core.Dtos
 {
-    public class BarChartDto
+    public class LineChartDto : AbstractChartDto
     {
         public string Name { get; set; }
-        public int Start { get; set; }
-        public int End { get; set; }
+        public double[] Values { get; set; }
     }
 }
