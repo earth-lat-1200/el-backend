@@ -16,6 +16,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly JwtGenerator jwtGenerator;
         private readonly int COORDINATES_LENGTH = 73;//3 days + 1 hour
         private readonly object _lock = new();
+        private readonly string BAR_CHART_TYPE = "bar";
+        private readonly string LINE_CHART_TYPE = "line";
 
         public StatisticService(ILogger<StatisticService> logger,
             ITableStorageService tableStorageService,
@@ -49,10 +51,15 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return jwtGenerator.GenerateJWT(user);
         }
 
-        public async Task<List<BarChartDto>> GetSendTimesAsync
+        public async Task<ChartInfoDto> GetBroadcastTimesAsync
             (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
-            List<BarChartDto> dtos = new();
+            var chartInfoDto = new ChartInfoDto
+            {
+                ChartType = BAR_CHART_TYPE,
+                ChartTitle = "Broadcast times"
+            };
+            List<AbstractChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
@@ -77,7 +84,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     End = endDate.GetSecondsSinceStartTime(timezoneOffset, referenceDate)
                 });
             }
-            return dtos;
+            chartInfoDto.Datasets = dtos;
+            return chartInfoDto;
         }
 
         private async Task<List<(string, string)>> GetAccessibleStations(JwtValidator validator)
@@ -104,10 +112,18 @@ namespace EarthLat.Backend.Core.BusinessLogic
         }
 
 
-        public async Task<List<LineChartDto>> GetTemperatrueValuesPerHourAsync
+        public async Task<ChartInfoDto> GetTemperatrueValuesPerHourAsync
             (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
-            List<LineChartDto> dtos = new();
+            var chartInfoDto = new ChartInfoDto
+            {
+                ChartType = LINE_CHART_TYPE,
+                ChartTitle = "Temperature Course",
+                Description = "C°",
+                Min = -20,
+                Max = 50
+            };
+            List<AbstractChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
@@ -133,7 +149,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     Values = GetCoordinatesFromFloatArray(timestamps, temperatureValues, referenceDate)
                 });
             }
-            return dtos;
+            chartInfoDto.Datasets = dtos;
+            return chartInfoDto;
         }
 
         private double[] GetCoordinatesFromFloatArray(DateTime[] timestamps, float[] floatValues, string referenceDate)
@@ -163,10 +180,18 @@ namespace EarthLat.Backend.Core.BusinessLogic
             }
             return coordinates;
         }
-        public async Task<List<LineChartDto>> GetImagesPerHourAsync
+        public async Task<ChartInfoDto> GetImagesPerHourAsync
             (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
-            List<LineChartDto> dtos = new();
+            var chartInfoDto = new ChartInfoDto
+            {
+                ChartType = LINE_CHART_TYPE,
+                ChartTitle = "Upload Activity",
+                Description = "Images per hour",
+                Min = 0,
+                Max = 100
+            };
+            List<AbstractChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
@@ -191,7 +216,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     Values = GetCoordinatesFromTimestamps(timestamps, referenceDate)
                 });
             }
-            return dtos;
+            chartInfoDto.Datasets = dtos;
+            return chartInfoDto;
         }
         private double[] GetCoordinatesFromTimestamps(DateTime[] timestamps, string referenceDate)
         {
@@ -205,10 +231,18 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return coordinates;
         }
 
-        public async Task<List<LineChartDto>> GetBrightnessValuesPerHourAsync
+        public async Task<ChartInfoDto> GetBrightnessValuesPerHourAsync
             (JwtValidator validator, string referenceDate, int timezoneOffset)
         {
-            List<LineChartDto> dtos = new();
+            var chartInfoDto = new ChartInfoDto
+            {
+                ChartType = LINE_CHART_TYPE,
+                ChartTitle = "Brightness Course",
+                Description = "Brightness",
+                Min = 0,
+                Max = 5000000
+            };
+            List<AbstractChartDto> dtos = new();
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
@@ -234,7 +268,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
                     Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues, referenceDate)
                 });
             }
-            return dtos;
+            chartInfoDto.Datasets = dtos;
+            return chartInfoDto;
         }
     }
 }

@@ -54,14 +54,14 @@ namespace EarthLat.Backend.Function
             }
         }
 
-        [Function(nameof(GetSendTimesAsync))]
-        [OpenApiOperation(operationId: nameof(GetSendTimesAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<BarChartDto>), Description = "The start- and endtime(s) of a/all stations sending activity on a certain day")]
+        [Function(nameof(GetBroadcastTimesAsync))]
+        [OpenApiOperation(operationId: nameof(GetBroadcastTimesAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The start- and endtime(s) of a/all stations sending activity on a certain day")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<BarChartDto>> GetSendTimesAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "SendTimes")] HttpRequestData request)
+        public async Task<ActionResult<ChartInfoDto>> GetBroadcastTimesAsync(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "BroadcastTimes")] HttpRequestData request)
         {
             try
             {
@@ -75,7 +75,7 @@ namespace EarthLat.Backend.Function
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
                 var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
-                var sendTimes = await statisticService.GetSendTimesAsync(
+                var sendTimes = await statisticService.GetBroadcastTimesAsync(
                     validator,
                     referenceDate,
                     int.Parse(timezoneOffset));
@@ -91,11 +91,11 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetAverageTemperaturePerHourAsync))]
         [OpenApiOperation(operationId: nameof(GetAverageTemperaturePerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<LineChartDto>), Description = "The average temperature of the uploaded images of a/all station(s) per hour")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The average temperature of the uploaded images of a/all station(s) per hour")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<LineChartDto>> GetAverageTemperaturePerHourAsync(
+        public async Task<ActionResult<ChartInfoDto>> GetAverageTemperaturePerHourAsync(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "TemperatureValues")] HttpRequestData request)
         {
             try
@@ -126,11 +126,11 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetImagesPerHourAsync))]
         [OpenApiOperation(operationId: nameof(GetImagesPerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<LineChartDto>), Description = "The uploaded images per hour of a/all station(s) on a certain day")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The uploaded images per hour of a/all station(s) on a certain day")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<LineChartDto>> GetImagesPerHourAsync(
+        public async Task<ActionResult<ChartInfoDto>> GetImagesPerHourAsync(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "ImagesPerHour")] HttpRequestData request)
         {
             try
@@ -161,11 +161,11 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetAverageBrightnessPerHourAsync))]
         [OpenApiOperation(operationId: nameof(GetAverageBrightnessPerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<LineChartDto>), Description = "The average brightness of the uploaded images of a/all station(s) per hour")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The average brightness of the uploaded images of a/all station(s) per hour")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<LineChartDto>> GetAverageBrightnessPerHourAsync(
+        public async Task<ActionResult<ChartInfoDto>> GetAverageBrightnessPerHourAsync(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "BrightnessValues")] HttpRequestData request)
         {
             try
