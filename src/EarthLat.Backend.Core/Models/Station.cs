@@ -20,6 +20,7 @@ namespace EarthLat.Backend.Core.Models
         public string? NearbyPublicInstitute { get; set; }
         public string? OrganizationalForm { get; set; }
         public byte[]? ReferenceImage { get; set; }
+        public int TimezoneOffset { get; set; }
 
 
         public string PartitionKey { get; set; } = "station";
