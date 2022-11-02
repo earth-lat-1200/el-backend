@@ -18,6 +18,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly ILogger<ISundialLogic> logger;
         private readonly ITableStorageService _tableStorageService;
         private static readonly string PARTITIONKEY_DATE_PARSER = "yyyy-MM-dd";
+        private static readonly string TIMESTAMP_DATE_PARSER = "yyyy-MM-dd hh:mm:ss";
         private static readonly int PIXEL_COUNT = 256;
         private static readonly int TOP_MARGIN = 100;
         private static readonly int LEFT_MARGIN = 100;
@@ -115,7 +116,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var sunlitLikelyhood = await GetSunlitLikelihood(images.ImgTotal, station.RowKey);
             images.SunlitLikelihood = sunlitLikelyhood.ToString();
             await AddImage(station, images, status);
-            await UpdateStatistics(station, images, status);
+            await UpdateStatistics(station, status);
             return await GetRemoteConfig(station);
         }
 
@@ -303,16 +304,16 @@ namespace EarthLat.Backend.Core.BusinessLogic
             images.ImgTotalv2 = temp.Skip(firstPart).Take(secondPart).ToArray();
         }
 
-        private async Task UpdateStatistics(Station station, Images images, Status status)
+        private async Task UpdateStatistics(Station station, Status status)
         {
             var (statistic, referenceDate) = await GetLatestStatisticAndDate(station, status);
             if (statistic == null)
             {
-                await CreateNewStatisticEntry(station, images, status, referenceDate);
+                await CreateNewStatisticEntry(station, status, referenceDate);
             }
             else
             {
-                await UpdateStatisticEntry(statistic, images, status);
+                await UpdateStatisticEntry(statistic, status);
             }
         }
 
@@ -325,9 +326,10 @@ namespace EarthLat.Backend.Core.BusinessLogic
             return (result.FirstOrDefault(), referenceDate);
         }
 
-        private async Task CreateNewStatisticEntry(Station station, Images images, Status status, DateTime referenceDate)
+        private async Task CreateNewStatisticEntry(Station station, Status status, DateTime referenceDate)
         {
-            var timestamps = new List<long> { long.Parse(images.RowKey) };
+            var timestamp = DateTime.ParseExact(status.CaptureLat, "dd MMM yyyy hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            var timestamps = new List<string> { timestamp.ToString(TIMESTAMP_DATE_PARSER) };
             var brightnessValues = new List<float> { status.Brightness };
             var temperatureValues = new List<float> { status.OutcaseTemparature };
             var statistic = new Statistic
@@ -341,12 +343,13 @@ namespace EarthLat.Backend.Core.BusinessLogic
             await _tableStorageService.AddAsync(statistic);
         }
 
-        private async Task UpdateStatisticEntry(Statistic statistic, Images images, Status status)
+        private async Task UpdateStatisticEntry(Statistic statistic, Status status)
         {
-            var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>();
+            var timestamp = DateTime.ParseExact(status.CaptureLat, "dd MMM yyyy hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>();
             var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
             var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();
-            timestamps.Add(long.Parse(images.RowKey));
+            timestamps.Add(timestamp.ToString(TIMESTAMP_DATE_PARSER));
             brightnessValues.Add(status.Brightness);
             temperatureValues.Add(status.OutcaseTemparature);
             statistic.UploadTimestamps = timestamps.ToBase64();
