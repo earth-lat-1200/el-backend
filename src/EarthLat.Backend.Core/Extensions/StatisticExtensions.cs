@@ -24,7 +24,7 @@ namespace EarthLat.Backend.Core.Extensions
         {
             return DateTime.ParseExact(
                 date,
-                "yyyy-MM-dd hh:mm:ss",
+                "yyyy-MM-dd HH:mm:ss",
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.None);
         }
