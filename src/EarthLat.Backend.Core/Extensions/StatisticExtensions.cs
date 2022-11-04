@@ -11,19 +11,22 @@ namespace EarthLat.Backend.Core.Extensions
 {
     public static class StatisticExtensions
     {
-        public static int GetSecondsSinceStartTime(this DateTime date, int timezoneOffset, string referenceDate)
-        {
-            var startDate = referenceDate.GetStartDate();
-            var totalSeconds = date
-                .AddMinutes(timezoneOffset)
-                .Subtract(startDate);
-            return (int)totalSeconds.TotalSeconds;
-        }
 
-        public static DateTime GetStartDate(this string referenceDate)
+        public static DateTime ParseToDate(this string date)
         {
-            return DateTime.ParseExact(referenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None)
-                .Date.AddDays(-1);
+            return DateTime.ParseExact(
+                date,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None).Date;
+        }
+        public static DateTime ParseToDateTime(this string date)
+        {
+            return DateTime.ParseExact(
+                date,
+                "yyyy-MM-dd hh:mm:ss",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None);
         }
         public static DateTime GetDateTime(this long timestamp)
         {
@@ -32,23 +35,18 @@ namespace EarthLat.Backend.Core.Extensions
 
         public static bool AreValidHeaders(this HttpHeadersCollection headers)
         {
-            var (referenceDate, timezoneOffset) = headers.GetHeaders();
-            if (referenceDate == null || timezoneOffset == null)
-            {
-                return false;
-            }
-            if (!DateTime.TryParseExact(referenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                       DateTimeStyles.None, out _) || !int.TryParse(timezoneOffset, out _))
+            var referenceDate = headers.GetHeader();
+            if (referenceDate == null || !DateTime.TryParseExact(referenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                       DateTimeStyles.None, out _))
             {
                 return false;
             }
             return true;
         }
-        public static (string?, string?) GetHeaders(this HttpHeadersCollection headers)
+        public static string? GetHeader(this HttpHeadersCollection headers)
         {
             var referenceDate = headers.FirstOrDefault(x => x.Key == "referencedate");
-            var timezoneOffset = headers.FirstOrDefault(x => x.Key == "timezoneoffset");
-            return (referenceDate.Value.FirstOrDefault(), timezoneOffset.Value.FirstOrDefault());
+            return (referenceDate.Value.FirstOrDefault());
         }
 
         public static string ToBase64(this object toConvert)

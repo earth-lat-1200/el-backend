@@ -320,6 +320,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private async Task<(Statistic, DateTime)> GetLatestStatisticAndDate(Station station, Status status)
         {
             var caputreDateString = status.CaptureLat.Substring(5, 11);
+            Console.WriteLine(caputreDateString);
             var referenceDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
             _tableStorageService.Init("statistics");
             var result = await _tableStorageService.GetByFilterAsync<Statistic>($"PartitionKey eq '{station.RowKey}' and RowKey eq '{referenceDate.ToString(PARTITIONKEY_DATE_PARSER)}'");
@@ -328,7 +329,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
         private async Task CreateNewStatisticEntry(Station station, Status status, DateTime referenceDate)
         {
-            var timestamp = DateTime.ParseExact(status.CaptureLat.Substring(5, 11), "dd MMM yyyy hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            var caputreDateString = status.CaptureLat.Substring(5, 20);
+            var timestamp = DateTime.ParseExact(caputreDateString, "dd MMM yyyy hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
             var timestamps = new List<string> { timestamp.ToString(TIMESTAMP_DATE_PARSER) };
             var brightnessValues = new List<float> { status.Brightness };
             var temperatureValues = new List<float> { status.OutcaseTemparature };
@@ -345,7 +347,8 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
         private async Task UpdateStatisticEntry(Statistic statistic, Status status)
         {
-            var timestamp = DateTime.ParseExact(status.CaptureLat.Substring(5, 11), "dd MMM yyyy hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            var caputreDateString = status.CaptureLat.Substring(5, 20);
+            var timestamp = DateTime.ParseExact(caputreDateString, "dd MMM yyyy hh:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
             var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>();
             var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>();
             var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>();

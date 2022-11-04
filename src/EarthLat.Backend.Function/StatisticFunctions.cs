@@ -56,11 +56,11 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetBroadcastTimesAsync))]
         [OpenApiOperation(operationId: nameof(GetBroadcastTimesAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The start- and endtime(s) of a/all stations sending activity on a certain day")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartDto), Description = "The start- and endtime(s) of a/all stations sending activity on a certain day")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<ChartInfoDto>> GetBroadcastTimesAsync(
+        public async Task<ActionResult<ChartDto>> GetBroadcastTimesAsync(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "BroadcastTimes")] HttpRequestData request)
         {
             try
@@ -74,11 +74,8 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
-                var sendTimes = await statisticService.GetBroadcastTimesAsync(
-                    validator,
-                    referenceDate,
-                    int.Parse(timezoneOffset));
+                var referenceDate = request.Headers.GetHeader();
+                var sendTimes = await statisticService.GetBroadcastTimesAsync(validator, referenceDate);
                 return (sendTimes == null)
                     ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
                     : new OkObjectResult(sendTimes);
@@ -91,11 +88,11 @@ namespace EarthLat.Backend.Function
 
         [Function(nameof(GetAverageTemperaturePerHourAsync))]
         [OpenApiOperation(operationId: nameof(GetAverageTemperaturePerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The average temperature of the uploaded images of a/all station(s) per hour")]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartDto), Description = "The average temperature of the uploaded images of a/all station(s) per hour")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
         [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<ChartInfoDto>> GetAverageTemperaturePerHourAsync(
+        public async Task<ActionResult<ChartDto>> GetAverageTemperaturePerHourAsync(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "TemperatureValues")] HttpRequestData request)
         {
             try
@@ -109,11 +106,8 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
-                var brightnessValues = await statisticService.GetTemperatrueValuesPerHourAsync(
-                    validator,
-                    referenceDate,
-                    int.Parse(timezoneOffset));
+                var referenceDate = request.Headers.GetHeader();
+                var brightnessValues = await statisticService.GetTemperatrueValuesPerHourAsync(validator, referenceDate);
                 return (brightnessValues == null)
                     ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
                     : new OkObjectResult(brightnessValues);
@@ -124,74 +118,68 @@ namespace EarthLat.Backend.Function
             }
         }
 
-        [Function(nameof(GetImagesPerHourAsync))]
-        [OpenApiOperation(operationId: nameof(GetImagesPerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The uploaded images per hour of a/all station(s) on a certain day")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<ChartInfoDto>> GetImagesPerHourAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "ImagesPerHour")] HttpRequestData request)
-        {
-            try
-            {
-                validator.Validate(request);
-                if (!validator.IsValid)
-                {
-                    return new UnauthorizedResult();
-                }
-                if (!request.Headers.AreValidHeaders())
-                {
-                    return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
-                }
-                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
-                var sendTimes = await statisticService.GetImagesPerHourAsync(
-                    validator,
-                    referenceDate,
-                    int.Parse(timezoneOffset));
-                return (sendTimes == null)
-                    ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
-                    : new OkObjectResult(sendTimes);
-            }
-            catch (Exception e)
-            {
-                return new ConflictObjectResult(e.Message);
-            }
-        }
+        //    [Function(nameof(GetImagesPerHourAsync))]
+        //    [OpenApiOperation(operationId: nameof(GetImagesPerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
+        //    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartDto), Description = "The uploaded images per hour of a/all station(s) on a certain day")]
+        //    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        //    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        //    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        //    public async Task<ActionResult<ChartDto>> GetImagesPerHourAsync(
+        //    [HttpTrigger(AuthorizationLevel.Function, "get", Route = "ImagesPerHour")] HttpRequestData request)
+        //    {
+        //        try
+        //        {
+        //            validator.Validate(request);
+        //            if (!validator.IsValid)
+        //            {
+        //                return new UnauthorizedResult();
+        //            }
+        //            if (!request.Headers.AreValidHeaders())
+        //            {
+        //                return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
+        //            }
+        //            var referenceDate = request.Headers.GetHeader();
+        //            var sendTimes = await statisticService.GetImagesPerHourAsync(validator, referenceDate);
+        //            return (sendTimes == null)
+        //                ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
+        //                : new OkObjectResult(sendTimes);
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            return new ConflictObjectResult(e.Message);
+        //        }
+        //    }
 
-        [Function(nameof(GetAverageBrightnessPerHourAsync))]
-        [OpenApiOperation(operationId: nameof(GetAverageBrightnessPerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
-        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartInfoDto), Description = "The average brightness of the uploaded images of a/all station(s) per hour")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
-        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
-        public async Task<ActionResult<ChartInfoDto>> GetAverageBrightnessPerHourAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "BrightnessValues")] HttpRequestData request)
-        {
-            try
-            {
-                validator.Validate(request);
-                if (!validator.IsValid)
-                {
-                    return new UnauthorizedResult();
-                }
-                if (!request.Headers.AreValidHeaders())
-                {
-                    return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
-                }
-                var (referenceDate, timezoneOffset) = request.Headers.GetHeaders();
-                var brightnessValues = await statisticService.GetBrightnessValuesPerHourAsync(
-                    validator,
-                    referenceDate,
-                    int.Parse(timezoneOffset));
-                return (brightnessValues == null)
-                    ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
-                    : new OkObjectResult(brightnessValues);
-            }
-            catch (Exception e)
-            {
-                return new ConflictObjectResult(e.Message);
-            }
-        }
+        //    [Function(nameof(GetAverageBrightnessPerHourAsync))]
+        //    [OpenApiOperation(operationId: nameof(GetAverageBrightnessPerHourAsync), tags: new[] { "Frontend API" }, Summary = "Get the sending times of a station")]
+        //    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ChartDto), Description = "The average brightness of the uploaded images of a/all station(s) per hour")]
+        //    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        //    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        //    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        //    public async Task<ActionResult<ChartDto>> GetAverageBrightnessPerHourAsync(
+        //    [HttpTrigger(AuthorizationLevel.Function, "get", Route = "BrightnessValues")] HttpRequestData request)
+        //    {
+        //        try
+        //        {
+        //            validator.Validate(request);
+        //            if (!validator.IsValid)
+        //            {
+        //                return new UnauthorizedResult();
+        //            }
+        //            if (!request.Headers.AreValidHeaders())
+        //            {
+        //                return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
+        //            }
+        //            var referenceDate = request.Headers.GetHeader();
+        //            var brightnessValues = await statisticService.GetBrightnessValuesPerHourAsync(validator, referenceDate);
+        //            return (brightnessValues == null)
+        //                ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
+        //                : new OkObjectResult(brightnessValues);
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            return new ConflictObjectResult(e.Message);
+        //        }
+        //    }
     }
 }
