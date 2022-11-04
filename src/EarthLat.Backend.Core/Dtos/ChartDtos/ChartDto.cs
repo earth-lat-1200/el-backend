@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace EarthLat.Backend.Core.Dtos
 {
-    public class ChartInfoDto
+    public class ChartDto
     {
-        public List<AbstractChartDto> Datasets { get; set; }
+        public List<DatasetDto> Datasets { get; set; }
         public string ChartType { get; set; }
         public string ChartTitle { get; set; }
         public string Description { get; set; }

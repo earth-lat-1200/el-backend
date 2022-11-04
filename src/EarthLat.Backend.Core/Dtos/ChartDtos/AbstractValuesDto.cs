@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EarthLat.Backend.Core.Dtos
+namespace EarthLat.Backend.Core.Dtos.ChartDtos
 {
-    public abstract class AbstractChartDto
+    public abstract class AbstractValuesDto
     {
 
     }
