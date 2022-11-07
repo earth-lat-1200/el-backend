@@ -219,7 +219,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
         {
             station.LastImageKey = images.RowKey;
             _tableStorageService.Init("stations");
-            station.TimezoneOffset = await GetTimezoneOffset(station.RowKey);
             station.ReferenceImage = await GetReferenceImage(station.RowKey);
             await _tableStorageService.AddOrUpdateAsync(station);
             SetImagesPropertiesFromStatus(images, status);
@@ -235,19 +234,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
             await _tableStorageService.AddAsync(images);
         }
 
-        private async Task<int> GetTimezoneOffset(string stationName)
-        {
-            _tableStorageService.Init("stations");
-            var query = $"RowKey eq '{stationName}'";
-            var station = (await _tableStorageService
-                .GetByFilterAsync<Station>(query))
-                .FirstOrDefault();
-            if (station == null)
-            {
-                return 0;
-            }
-            return station.TimezoneOffset;
-        }
 
         private void SetImagesPropertiesFromStatus(Images images, Status status)
         {
@@ -320,7 +306,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private async Task<(Statistic, DateTime)> GetLatestStatisticAndDate(Station station, Status status)
         {
             var caputreDateString = status.CaptureLat.Substring(5, 11);
-            Console.WriteLine(caputreDateString);
             var referenceDate = DateTime.ParseExact(caputreDateString, "dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
             _tableStorageService.Init("statistics");
             var result = await _tableStorageService.GetByFilterAsync<Statistic>($"PartitionKey eq '{station.RowKey}' and RowKey eq '{referenceDate.ToString(PARTITIONKEY_DATE_PARSER)}'");
