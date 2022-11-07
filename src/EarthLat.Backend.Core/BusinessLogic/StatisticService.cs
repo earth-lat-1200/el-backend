@@ -6,6 +6,7 @@ using EarthLat.Backend.Core.Interfaces;
 using EarthLat.Backend.Core.JWT;
 using EarthLat.Backend.Core.Models;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using System.Globalization;
 
 namespace EarthLat.Backend.Core.BusinessLogic
@@ -19,6 +20,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private readonly object _lock = new();
         private readonly string BAR_CHART_TYPE = "bar";
         private readonly string LINE_CHART_TYPE = "line";
+        private readonly int STATION_ACRONYM_LENGTH = 2;
 
         public StatisticService(ILogger<StatisticService> logger,
             ITableStorageService tableStorageService,
@@ -76,18 +78,33 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>();
+                if (timestamps.Count < 2)
+                    continue;
                 var startDate = timestamps.FirstOrDefault();
-                var endDate = timestamps.LastOrDefault();
                 List<AbstractValuesDto> values = new();
+                for (int i = 1; i < timestamps.Count; i++)
+                {
+                    if (timestamps[i].ParseToDateTime().Subtract(timestamps[i - 1].ParseToDateTime()).TotalMinutes > 15)
+                    {
+                        if (startDate == timestamps[i - 1])
+                            continue;
+                        values.Add(new BarChartDatapointDto
+                        {
+                            Start = startDate,
+                            End = timestamps[i - 1]
+                        });
+                        startDate = timestamps[i];
+                    }
+                }
+                var endDate = timestamps.LastOrDefault();
                 values.Add(new BarChartDatapointDto
                 {
-
                     Start = startDate,
                     End = endDate
                 });
                 datasets.Add(new DatasetDto
                 {
-                    StationName = station.Item2,
+                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
                     Values = values
                 });
             }
@@ -122,7 +139,6 @@ namespace EarthLat.Backend.Core.BusinessLogic
         public async Task<ChartDto> GetTemperatrueValuesPerHourAsync
             (JwtValidator validator, string referenceDate)
         {
-            Console.WriteLine("the pattern indicates: ");
             var chartDto = new ChartDto
             {
                 ChartType = LINE_CHART_TYPE,
@@ -144,29 +160,28 @@ namespace EarthLat.Backend.Core.BusinessLogic
                         .GetByFilterAsync<Statistic>(query).Result)
                         .FirstOrDefault();
                 }
-                Console.WriteLine(statistic);
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
                     .ToArray();
                 var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>()
                     .ToArray();
-                Console.WriteLine(station.Item2);
-                GetAverageDatapointValues(timestamps, temperatureValues, referenceDate);
+                var averageTemperatureDatapointValues = GetAverageDatapointValues(timestamps, temperatureValues, referenceDate);
                 datasets.Add(new DatasetDto
                 {
-                    StationName = station.Item2
+                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
+                    Values = averageTemperatureDatapointValues
                 });
             }
             chartDto.Datasets = datasets;
             return chartDto;
         }
 
-        private List<LineChartDatapointDto> GetAverageDatapointValues(string[] timestamps, float[] values, string referenceDate)
+        private List<AbstractValuesDto> GetAverageDatapointValues(string[] timestamps, float[] values, string referenceDate)
         {
-            Console.WriteLine("there");
-            var toRetrun = new List<LineChartDatapointDto>();
-            var startDate = referenceDate.ParseToDate().AddMinutes(-7.5);
+            var startDate = referenceDate.ParseToDate();
+            var endDate = referenceDate.ParseToDate().AddDays(1);
+            var toRetrun = GetEmptyDatapointList(startDate, endDate, 15);
             var combinedValues = timestamps
                 .Select((item, index) => new LineChartDatapointDto
                 {
@@ -175,107 +190,117 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 });
             IEnumerable<IGrouping<int, LineChartDatapointDto>> query =
                 from timestamp in combinedValues
-                group timestamp by (int)(timestamp.Timestamp.ParseToDateTime().Subtract(startDate).TotalMinutes / 15);
+                group timestamp by (int)(timestamp.Timestamp.ParseToDateTime().Subtract(startDate.AddMinutes(-7.5)).TotalMinutes / 15);
             foreach (var group in query)
             {
-                Console.WriteLine(group.Key);
-                foreach (var x in group)
-                    Console.WriteLine(x.Timestamp + " " + x.Value);
-                Console.WriteLine("------------------");
+                ((LineChartDatapointDto)toRetrun[group.Key]).Value = group.Select(x => x.Value).Average();
             }
-            //TODO group the average values by 15 minutes
             return toRetrun;
         }
-        //public async Task<ChartDto> GetImagesPerHourAsync
-        //    (JwtValidator validator, string referenceDate)
-        //{
-        //    var chartInfoDto = new ChartDto
-        //    {
-        //        ChartType = LINE_CHART_TYPE,
-        //        ChartTitle = "Upload Activity",
-        //        Description = "Images per hour",
-        //        Min = 0,
-        //        Max = 100
-        //    };
-        //    List<DatasetDto> dtos = new();
-        //    var stations = await GetAccessibleStations(validator);
-        //    foreach (var station in stations)
-        //    {
-        //        var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-        //        Statistic statistic = null;
-        //        lock (_lock)
-        //        {
-        //            _tableStorageService.Init("statistics");
-        //            statistic = (_tableStorageService
-        //                .GetByFilterAsync<Statistic>(query).Result)
-        //                .FirstOrDefault();
-        //        }
-        //        if (statistic == null)
-        //            continue;
-        //        var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
-        //            .Select(x => x.GetDateTime().AddMinutes(
-        //                timezoneOffset))
-        //            .ToArray();
-        //        dtos.Add(new LineChartDatapointDto
-        //        {
-        //            Name = station.Item2,
-        //            Values = GetCoordinatesFromTimestamps(timestamps, referenceDate)
-        //        });
-        //    }
-        //    chartInfoDto.Datasets = dtos;
-        //    return chartInfoDto;
-        //}
-        //private double[] GetNumberOfDatapointValues(DateTime[] timestamps, string referenceDate)
-        //{
-        //    var startDate = referenceDate.GetStartDate().AddMinutes(-30);
-        //    var coordinates = new double[COORDINATES_LENGTH];
-        //    foreach (var timestamp in timestamps)
-        //    {
-        //        var index = (int)timestamp.Subtract(startDate).TotalHours;
-        //        coordinates[index]++;
-        //    }
-        //    return coordinates;
-        //}
+        private List<AbstractValuesDto> GetEmptyDatapointList(DateTime startDate, DateTime endDate, int interval)
+        {
+            var toRetrun = new List<AbstractValuesDto>();
+            for (DateTime i = startDate; i <= endDate; i = i.AddMinutes(interval))
+            {
+                toRetrun.Add(new LineChartDatapointDto
+                {
+                    Timestamp = i.ToString(SundialLogic.TIMESTAMP_DATE_PARSER)
+                });
+            }
+            return toRetrun;
+        }
+        public async Task<ChartDto> GetImagesPerHourAsync
+            (JwtValidator validator, string referenceDate)
+        {
+            var chartDto = new ChartDto
+            {
+                ChartType = LINE_CHART_TYPE,
+                ChartTitle = "Upload Activity",
+                Description = "Images per hour",
+                Min = 0,
+                Max = 100
+            };
+            List<DatasetDto> datasets = new();
+            var stations = await GetAccessibleStations(validator);
+            foreach (var station in stations)
+            {
+                var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
+                Statistic statistic = null;
+                lock (_lock)
+                {
+                    _tableStorageService.Init("statistics");
+                    statistic = (_tableStorageService
+                        .GetByFilterAsync<Statistic>(query).Result)
+                        .FirstOrDefault();
+                }
+                if (statistic == null)
+                    continue;
+                var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
+                    .ToArray();
+                datasets.Add(new DatasetDto
+                {
+                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
+                    Values = GetNumberOfDatapointValues(timestamps, referenceDate)
+                });
 
-        //public async Task<ChartDto> GetBrightnessValuesPerHourAsync
-        //    (JwtValidator validator, string referenceDate)
-        //{
-        //    var chartInfoDto = new ChartDto
-        //    {
-        //        ChartType = LINE_CHART_TYPE,
-        //        ChartTitle = "Brightness Course",
-        //        Description = "Brightness",
-        //        Min = 0,
-        //        Max = 5000000
-        //    };
-        //    List<DatasetDto> dtos = new();
-        //    var stations = await GetAccessibleStations(validator);
-        //    foreach (var station in stations)
-        //    {
-        //        var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-        //        Statistic statistic = null;
-        //        lock (_lock)
-        //        {
-        //            _tableStorageService.Init("statistics");
-        //            statistic = (_tableStorageService
-        //                .GetByFilterAsync<Statistic>(query).Result)
-        //                .FirstOrDefault();
-        //        }
-        //        if (statistic == null)
-        //            continue;
-        //        var timestamps = statistic.UploadTimestamps.FromBase64<List<long>>()
-        //            .Select(x => x.GetDateTime().AddMinutes(timezoneOffset))
-        //            .ToArray();
-        //        var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>()
-        //            .ToArray();
-        //        dtos.Add(new LineChartDatapointDto
-        //        {
-        //            Name = station.Item2,
-        //            Values = GetCoordinatesFromFloatArray(timestamps, brightnessValues, referenceDate)
-        //        });
-        //    }
-        //    chartInfoDto.Datasets = dtos;
-        //    return chartInfoDto;
-        //}
+            }
+            chartDto.Datasets = datasets;
+            return chartDto;
+        }
+        private List<AbstractValuesDto> GetNumberOfDatapointValues(string[] timestamps, string referenceDate)
+        {
+            var startDate = referenceDate.ParseToDate();
+            var endDate = referenceDate.ParseToDate().AddDays(1);
+            var toRetrun = GetEmptyDatapointList(startDate, endDate, 60);
+            IEnumerable<IGrouping<int, string>> query =
+                from timestamp in timestamps
+                group timestamp by (int)(timestamp.ParseToDateTime().Subtract(startDate.AddMinutes(-30)).TotalMinutes / 60);
+            foreach (var group in query)
+            {
+                ((LineChartDatapointDto)toRetrun[group.Key]).Value = group.Count();
+            }
+            return toRetrun;
+        }
+
+        public async Task<ChartDto> GetBrightnessValuesPerHourAsync
+            (JwtValidator validator, string referenceDate)
+        {
+            var chartDto = new ChartDto
+            {
+                ChartType = LINE_CHART_TYPE,
+                ChartTitle = "Brightness Course",
+                Description = "Brightness",
+                Min = 0,
+                Max = 5000000
+            };
+            List<DatasetDto> datasets = new();
+            var stations = await GetAccessibleStations(validator);
+            foreach (var station in stations)
+            {
+                var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
+                Statistic statistic = null;
+                lock (_lock)
+                {
+                    _tableStorageService.Init("statistics");
+                    statistic = (_tableStorageService
+                        .GetByFilterAsync<Statistic>(query).Result)
+                        .FirstOrDefault();
+                }
+                if (statistic == null)
+                    continue;
+                var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
+                    .ToArray();
+                var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>()
+                    .ToArray();
+                var averageTemperatureDatapointValues = GetAverageDatapointValues(timestamps, brightnessValues, referenceDate);
+                datasets.Add(new DatasetDto
+                {
+                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
+                    Values = averageTemperatureDatapointValues
+                });
+            }
+            chartDto.Datasets = datasets;
+            return chartDto;
+        }
     }
 }
