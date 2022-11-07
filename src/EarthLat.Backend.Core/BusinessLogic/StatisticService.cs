@@ -78,12 +78,27 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 if (statistic == null)
                     continue;
                 var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>();
+                if (timestamps.Count < 2)
+                    continue;
                 var startDate = timestamps.FirstOrDefault();
-                var endDate = timestamps.LastOrDefault();
                 List<AbstractValuesDto> values = new();
+                for (int i = 1; i < timestamps.Count; i++)
+                {
+                    if (timestamps[i].ParseToDateTime().Subtract(timestamps[i - 1].ParseToDateTime()).TotalMinutes > 15)
+                    {
+                        if (startDate == timestamps[i - 1])
+                            continue;
+                        values.Add(new BarChartDatapointDto
+                        {
+                            Start = startDate,
+                            End = timestamps[i - 1]
+                        });
+                        startDate = timestamps[i];
+                    }
+                }
+                var endDate = timestamps.LastOrDefault();
                 values.Add(new BarChartDatapointDto
                 {
-
                     Start = startDate,
                     End = endDate
                 });
