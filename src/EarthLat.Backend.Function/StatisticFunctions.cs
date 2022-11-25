@@ -74,8 +74,8 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var referenceDate = request.Headers.GetHeader();
-                var sendTimes = await statisticService.GetBroadcastTimesAsync(validator, referenceDate);
+                var (startReferenceDate, endReferenceDate) = request.Headers.GetHeaders();
+                var sendTimes = await statisticService.GetBroadcastTimesAsync(validator, startReferenceDate, endReferenceDate);
                 return (sendTimes == null)
                     ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
                     : new OkObjectResult(sendTimes);
@@ -106,8 +106,8 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var referenceDate = request.Headers.GetHeader();
-                var brightnessValues = await statisticService.GetTemperatrueValuesPerHourAsync(validator, referenceDate);
+                var (startReferenceDate, endReferenceDate) = request.Headers.GetHeaders();
+                var brightnessValues = await statisticService.GetTemperatrueValuesPerHourAsync(validator, startReferenceDate, endReferenceDate);
                 return (brightnessValues == null)
                     ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
                     : new OkObjectResult(brightnessValues);
@@ -138,8 +138,8 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var referenceDate = request.Headers.GetHeader();
-                var sendTimes = await statisticService.GetImagesPerHourAsync(validator, referenceDate);
+                var (startReferenceDate, endReferenceDate) = request.Headers.GetHeaders();
+                var sendTimes = await statisticService.GetImagesPerHourAsync(validator, startReferenceDate, endReferenceDate);
                 return (sendTimes == null)
                     ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
                     : new OkObjectResult(sendTimes);
@@ -170,8 +170,8 @@ namespace EarthLat.Backend.Function
                 {
                     return new NotFoundObjectResult(INVALID_HEADER_MESSAGE);
                 }
-                var referenceDate = request.Headers.GetHeader();
-                var brightnessValues = await statisticService.GetBrightnessValuesPerHourAsync(validator, referenceDate);
+                var (startReferenceDate, endReferenceDate) = request.Headers.GetHeaders();
+                var brightnessValues = await statisticService.GetBrightnessValuesPerHourAsync(validator, startReferenceDate, endReferenceDate);
                 return (brightnessValues == null)
                     ? new NotFoundObjectResult(NO_DATA_FOUND_MESSAGE)
                     : new OkObjectResult(brightnessValues);

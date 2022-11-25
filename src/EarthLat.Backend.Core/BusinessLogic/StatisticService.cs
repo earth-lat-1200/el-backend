@@ -55,7 +55,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         }
 
         public async Task<ChartDto> GetBroadcastTimesAsync
-            (JwtValidator validator, string referenceDate)
+            (JwtValidator validator, string startReferenceDate, string endReferenceDate)
         {
             var chartDto = new ChartDto
             {
@@ -66,47 +66,57 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
-                var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                Statistic statistic = null;
-                lock (_lock)
+                var dataset = new DatasetDto
                 {
-                    _tableStorageService.Init("statistics");
-                    statistic = (_tableStorageService
-                        .GetByFilterAsync<Statistic>(query).Result)
-                        .FirstOrDefault();
-                }
-                if (statistic == null)
-                    continue;
-                var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>();
-                if (timestamps.Count < 2)
-                    continue;
-                var startDate = timestamps.FirstOrDefault();
+                    StationName = $"{station.Item2} ({station.Item1[..STATION_ACRONYM_LENGTH]})"
+                };
                 List<AbstractValuesDto> values = new();
-                for (int i = 1; i < timestamps.Count; i++)
+                var referenceDate = startReferenceDate.ParseToDate();
+                while (referenceDate <= endReferenceDate.ParseToDate())
                 {
-                    if (timestamps[i].ParseToDateTime().Subtract(timestamps[i - 1].ParseToDateTime()).TotalMinutes > 15)
+                    var formatedReferenceDate = referenceDate.ToString("yyyy-MM-dd");
+                    var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{formatedReferenceDate}'";
+                    Statistic statistic = null;
+                    lock (_lock)
                     {
-                        if (startDate == timestamps[i - 1])
-                            continue;
-                        values.Add(new BarChartDatapointDto
-                        {
-                            Start = startDate,
-                            End = timestamps[i - 1]
-                        });
-                        startDate = timestamps[i];
+                        _tableStorageService.Init("statistics");
+                        statistic = (_tableStorageService
+                            .GetByFilterAsync<Statistic>(query).Result)
+                            .FirstOrDefault();
                     }
+                    referenceDate = referenceDate.AddDays(1);
+                    if (statistic == null)
+                        continue;
+                    var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>();
+                    if (timestamps.Count < 2)
+                        continue;
+                    var startDate = timestamps.FirstOrDefault();
+                    for (int i = 1; i < timestamps.Count; i++)
+                    {
+                        if (timestamps[i].ParseToDateTime().Subtract(timestamps[i - 1].ParseToDateTime()).TotalMinutes > 15)
+                        {
+                            if (startDate == timestamps[i - 1])
+                                continue;
+                            values.Add(new BarChartDatapointDto
+                            {
+                                Start = startDate,
+                                End = timestamps[i - 1]
+                            });
+                            startDate = timestamps[i];
+                        }
+                    }
+                    var endDate = timestamps.LastOrDefault();
+                    values.Add(new BarChartDatapointDto
+                    {
+                        Start = startDate,
+                        End = endDate
+                    });
                 }
-                var endDate = timestamps.LastOrDefault();
-                values.Add(new BarChartDatapointDto
+                if (values.Any())
                 {
-                    Start = startDate,
-                    End = endDate
-                });
-                datasets.Add(new DatasetDto
-                {
-                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
-                    Values = values
-                });
+                    dataset.Values = values;
+                    datasets.Add(dataset);
+                }
             }
             chartDto.Datasets = datasets;
             return chartDto;
@@ -137,7 +147,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
 
 
         public async Task<ChartDto> GetTemperatrueValuesPerHourAsync
-            (JwtValidator validator, string referenceDate)
+            (JwtValidator validator, string startReferenceDate, string endReferenceDate)
         {
             var chartDto = new ChartDto
             {
@@ -151,27 +161,38 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
-                var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                Statistic statistic = null;
-                lock (_lock)
+                var dataset = new DatasetDto
                 {
-                    _tableStorageService.Init("statistics");
-                    statistic = (_tableStorageService
-                        .GetByFilterAsync<Statistic>(query).Result)
-                        .FirstOrDefault();
+                    StationName = $"{station.Item2} ({station.Item1[..STATION_ACRONYM_LENGTH]})"
+                };
+                List<AbstractValuesDto> values = new();
+                var referenceDate = startReferenceDate.ParseToDate();
+                while (referenceDate <= endReferenceDate.ParseToDate())
+                {
+                    var formatedReferenceDate = referenceDate.ToString("yyyy-MM-dd");
+                    var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{formatedReferenceDate}'";
+                    Statistic statistic = null;
+                    lock (_lock)
+                    {
+                        _tableStorageService.Init("statistics");
+                        statistic = (_tableStorageService
+                            .GetByFilterAsync<Statistic>(query).Result)
+                            .FirstOrDefault();
+                    }
+                    referenceDate = referenceDate.AddDays(1);
+                    if (statistic == null)
+                        continue;
+                    var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
+                        .ToArray();
+                    var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>()
+                        .ToArray();
+                    values.AddRange(GetAverageDatapointValues(timestamps, temperatureValues, formatedReferenceDate));
                 }
-                if (statistic == null)
-                    continue;
-                var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
-                    .ToArray();
-                var temperatureValues = statistic.TemperatureValues.FromBase64<List<float>>()
-                    .ToArray();
-                var averageTemperatureDatapointValues = GetAverageDatapointValues(timestamps, temperatureValues, referenceDate);
-                datasets.Add(new DatasetDto
+                if (CollectionContainsDatapoints(values))
                 {
-                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
-                    Values = averageTemperatureDatapointValues
-                });
+                    dataset.Values = values;
+                    datasets.Add(dataset);
+                }
             }
             chartDto.Datasets = datasets;
             return chartDto;
@@ -209,8 +230,12 @@ namespace EarthLat.Backend.Core.BusinessLogic
             }
             return toRetrun;
         }
+        private bool CollectionContainsDatapoints(List<AbstractValuesDto> values)
+        {
+            return values.Select(x => ((LineChartDatapointDto)x).Value).Except(new List<double> { 0 }).Any();
+        }
         public async Task<ChartDto> GetImagesPerHourAsync
-            (JwtValidator validator, string referenceDate)
+            (JwtValidator validator, string startReferenceDate, string endReferenceDate)
         {
             var chartDto = new ChartDto
             {
@@ -224,25 +249,36 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
-                var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                Statistic statistic = null;
-                lock (_lock)
+                var dataset = new DatasetDto
                 {
-                    _tableStorageService.Init("statistics");
-                    statistic = (_tableStorageService
-                        .GetByFilterAsync<Statistic>(query).Result)
-                        .FirstOrDefault();
+                    StationName = $"{station.Item2} ({station.Item1[..STATION_ACRONYM_LENGTH]})"
+                };
+                List<AbstractValuesDto> values = new();
+                var referenceDate = startReferenceDate.ParseToDate();
+                while (referenceDate <= endReferenceDate.ParseToDate())
+                {
+                    var formatedReferenceDate = referenceDate.ToString("yyyy-MM-dd");
+                    var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{formatedReferenceDate}'";
+                    Statistic statistic = null;
+                    lock (_lock)
+                    {
+                        _tableStorageService.Init("statistics");
+                        statistic = (_tableStorageService
+                            .GetByFilterAsync<Statistic>(query).Result)
+                            .FirstOrDefault();
+                    }
+                    referenceDate = referenceDate.AddDays(1);
+                    if (statistic == null)
+                        continue;
+                    var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
+                        .ToArray();
+                    values.AddRange(GetNumberOfDatapointValues(timestamps, formatedReferenceDate));
                 }
-                if (statistic == null)
-                    continue;
-                var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
-                    .ToArray();
-                datasets.Add(new DatasetDto
+                if (CollectionContainsDatapoints(values))
                 {
-                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
-                    Values = GetNumberOfDatapointValues(timestamps, referenceDate)
-                });
-
+                    dataset.Values = values;
+                    datasets.Add(dataset);
+                }
             }
             chartDto.Datasets = datasets;
             return chartDto;
@@ -263,7 +299,7 @@ namespace EarthLat.Backend.Core.BusinessLogic
         }
 
         public async Task<ChartDto> GetBrightnessValuesPerHourAsync
-            (JwtValidator validator, string referenceDate)
+            (JwtValidator validator, string startReferenceDate, string endReferenceDate)
         {
             var chartDto = new ChartDto
             {
@@ -277,27 +313,38 @@ namespace EarthLat.Backend.Core.BusinessLogic
             var stations = await GetAccessibleStations(validator);
             foreach (var station in stations)
             {
-                var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{referenceDate}'";
-                Statistic statistic = null;
-                lock (_lock)
+                var dataset = new DatasetDto
                 {
-                    _tableStorageService.Init("statistics");
-                    statistic = (_tableStorageService
-                        .GetByFilterAsync<Statistic>(query).Result)
-                        .FirstOrDefault();
+                    StationName = $"{station.Item2} ({station.Item1[..STATION_ACRONYM_LENGTH]})"
+                };
+                List<AbstractValuesDto> values = new();
+                var referenceDate = startReferenceDate.ParseToDate();
+                while (referenceDate <= endReferenceDate.ParseToDate())
+                {
+                    var formatedReferenceDate = referenceDate.ToString("yyyy-MM-dd");
+                    var query = $"PartitionKey eq '{station.Item1}' and RowKey eq '{formatedReferenceDate}'";
+                    Statistic statistic = null;
+                    lock (_lock)
+                    {
+                        _tableStorageService.Init("statistics");
+                        statistic = (_tableStorageService
+                            .GetByFilterAsync<Statistic>(query).Result)
+                            .FirstOrDefault();
+                    }
+                    referenceDate = referenceDate.AddDays(1);
+                    if (statistic == null)
+                        continue;
+                    var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
+                        .ToArray();
+                    var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>()
+                        .ToArray();
+                    values.AddRange(GetAverageDatapointValues(timestamps, brightnessValues, formatedReferenceDate));
                 }
-                if (statistic == null)
-                    continue;
-                var timestamps = statistic.UploadTimestamps.FromBase64<List<string>>()
-                    .ToArray();
-                var brightnessValues = statistic.BrightnessValues.FromBase64<List<float>>()
-                    .ToArray();
-                var averageTemperatureDatapointValues = GetAverageDatapointValues(timestamps, brightnessValues, referenceDate);
-                datasets.Add(new DatasetDto
+                if (CollectionContainsDatapoints(values))
                 {
-                    StationName = $"{station.Item2} ({station.Item1.Substring(0, STATION_ACRONYM_LENGTH)})",
-                    Values = averageTemperatureDatapointValues
-                });
+                    dataset.Values = values;
+                    datasets.Add(dataset);
+                }
             }
             chartDto.Datasets = datasets;
             return chartDto;
