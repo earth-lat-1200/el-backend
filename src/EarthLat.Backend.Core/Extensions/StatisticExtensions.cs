@@ -28,25 +28,34 @@ namespace EarthLat.Backend.Core.Extensions
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.None);
         }
-        public static DateTime GetDateTime(this long timestamp)
-        {
-            return DateTimeOffset.FromUnixTimeMilliseconds(timestamp).DateTime;
-        }
 
         public static bool AreValidHeaders(this HttpHeadersCollection headers)
         {
-            var referenceDate = headers.GetHeader();
-            if (referenceDate == null || !DateTime.TryParseExact(referenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            var (startReferenceDate, endReferenceDate) = headers.GetHeaders();
+            if (startReferenceDate == null || endReferenceDate == null)
+            {
+                return false;
+            }
+            if (!DateTime.TryParseExact(startReferenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                       DateTimeStyles.None, out _)
+               || !DateTime.TryParseExact(endReferenceDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                        DateTimeStyles.None, out _))
+            {
+                return false;
+            }
+            var parsedStartReferenceDate = startReferenceDate.ParseToDate();
+            var parsedEndReferenceDate = endReferenceDate.ParseToDate();
+            if (parsedStartReferenceDate > parsedEndReferenceDate)
             {
                 return false;
             }
             return true;
         }
-        public static string? GetHeader(this HttpHeadersCollection headers)
+        public static (string?, string?) GetHeaders(this HttpHeadersCollection headers)
         {
-            var referenceDate = headers.FirstOrDefault(x => x.Key == "referencedate");
-            return (referenceDate.Value.FirstOrDefault());
+            var startDate = headers.FirstOrDefault(x => x.Key == "startdate");
+            var endDate = headers.FirstOrDefault(x => x.Key == "enddate");
+            return (startDate.Value.FirstOrDefault(), endDate.Value.FirstOrDefault());
         }
 
         public static string ToBase64(this object toConvert)
