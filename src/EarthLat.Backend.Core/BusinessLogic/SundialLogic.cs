@@ -7,6 +7,7 @@ using EarthLat.Backend.Core.Models;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Drawing;
+using System.Net;
 
 namespace EarthLat.Backend.Core.BusinessLogic
 {
@@ -27,6 +28,9 @@ namespace EarthLat.Backend.Core.BusinessLogic
         private static readonly int IMG_PIXEL_COUNT = SELECTED_HEIGHT * SELECTED_WIDTH;
         private static readonly double EXPONENT = 7831216639287 / 10000000000000;
         private static readonly int MAX_LAT_OFFSET = 180;
+        private double priorityMultiplicator { get; set; } = 3;
+        private double distanzeMultiplicator { get; set; } = 5;
+        private double randomMultiplicator { get; set; } = 8;
 
         public SundialLogic(ILogger<ISundialLogic> logger,
             ITableStorageService tableStorageService)
@@ -417,6 +421,57 @@ namespace EarthLat.Backend.Core.BusinessLogic
                 count++;
             }
             return count;
+        }
+
+
+        public async Task<string> SetPriorityOfStationById(string stationId, double priority)
+        {
+            _tableStorageService.Init("stations");
+            var stations = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{stationId}'");
+            if (stations.Any())
+            {
+                var currentStation = stations.First();
+                currentStation.Priority = priority;
+                await (_ = _tableStorageService.UpdateAsync(currentStation));
+                return "Priority of Station changed";
+            }
+            return "Station not found";
+        }
+
+        public async Task<PriorityMultiplicatorsDto> GetPriorityMultiplicators()
+        {
+            return new PriorityMultiplicatorsDto(priorityMultiplicator, distanzeMultiplicator, randomMultiplicator);
+        }
+
+        public async Task<PriorityMultiplicatorsDto> SetPriorityMultiplicators(double pm, double dm, double rm)
+        {
+            priorityMultiplicator = pm;
+            distanzeMultiplicator = dm;
+            randomMultiplicator = rm;
+
+            return new PriorityMultiplicatorsDto(priorityMultiplicator, distanzeMultiplicator, randomMultiplicator);
+        }
+
+        public async Task<string> SetIsOnlineOfStationById(string stationId)
+        {
+            _tableStorageService.Init("stations");
+            var stations = await _tableStorageService.GetByFilterAsync<Station>($"RowKey eq '{stationId}'");
+            if (stations.Any())
+            {
+                var currentStation = stations.First();
+                currentStation.IsOnline = !currentStation.IsOnline;
+                await(_ = _tableStorageService.UpdateAsync(currentStation));
+                if (currentStation.IsOnline)
+                {
+                    return $"{currentStation.StationName} is now online";
+                }
+                else
+                {
+                    return $"{currentStation.StationName} is now offline";
+                }
+                
+            }
+            return "Station not found";
         }
     }
 }

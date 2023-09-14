@@ -17,5 +17,7 @@
         public string TeamName { get; set; }
         public string NearbyPublicInstitute { get; set; }
         public string OrganizationalForm { get; set; }
+        public double Priority { get; set; }
+        public bool IsOnline { get; set; }
     }
 }

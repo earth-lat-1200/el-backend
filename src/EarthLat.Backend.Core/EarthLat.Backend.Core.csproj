@@ -30,4 +30,8 @@
     <PackageReference Include="Uno.UI" Version="4.4.13" />
   </ItemGroup>
 
+  <ItemGroup>
+    <SourceGeneratorInput Remove="Dtos\ChartDtos\PriorityMultiplicatorsDto.cs" />
+  </ItemGroup>
+
 </Project>

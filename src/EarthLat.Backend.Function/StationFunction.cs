@@ -71,6 +71,31 @@ namespace EarthLat.Backend.Function
                 : new OkObjectResult(toReturn);
         }
 
+        [Function(nameof(GetAllOnlineStations))]
+        [OpenApiOperation(operationId: nameof(GetAllOnlineStations), tags: new[] { "Frontend API" }, Summary = "Gets all stations.", Description = "Get all station infos of the available stations.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IEnumerable<StationInfoDto>), Description = "All stations in the system.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
+        public async Task<ActionResult<IEnumerable<StationInfoDto>>> GetAllOnlineStations(
+    [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
+        {
+            List<Station> result = (await _sundialLogic.GetAllStationsAsync()).Where(x => x.IsOnline).ToList();
+
+            var toReturn = _mapper.Map<IEnumerable<StationInfoDto>>(result);
+
+            foreach (var stationInfoDto in toReturn)
+            {
+                var sunlitLikelihood = (await _sundialLogic.GetLatestImagesById(stationInfoDto.StationId)).SunlitLikelihood.Replace(".", ",");
+                stationInfoDto.SunlitLikelihood = float.Parse(sunlitLikelihood);
+            }
+
+            return result is null || result?.Count < 1
+                ? new NotFoundResult()
+                : new OkObjectResult(toReturn);
+        }
+
         [Function(nameof(PushStationInfos))]
         [OpenApiOperation(operationId: nameof(PushStationInfos), tags: new[] { "Raspberry Pi API" },
             Summary = "Push station infos to the backend", Description = "Push the informations from the python client to the backend (stationInfo, imageTotal, imageDetail).")]
@@ -211,6 +236,99 @@ namespace EarthLat.Backend.Function
             var images = await _sundialLogic.GetLatestCombinedImagesByIdAsync(id);
             return new OkObjectResult(images.ImgTotal);
         }
+
+        [Function(nameof(SetIsOnlineOfStationById))]
+        [OpenApiOperation(operationId: nameof(SetIsOnlineOfStationById), tags: new[] { "Frontend API" }, Summary = "Sets piority for staion by stationId.", Description = "Set the priority of a station.")]
+        [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(double), Description = "Priority of station got changed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
+        public async Task<ActionResult<string>> SetIsOnlineOfStationById([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+        {
+            var bindContext = request.FunctionContext
+                                   .BindingContext;
+            string id = bindContext.BindingData["id"]
+                                   .ToString();
+
+                var actionResult = await _sundialLogic.SetIsOnlineOfStationById(id);
+                return new OkObjectResult(actionResult);
+        }
+
+        [Function(nameof(SetPriorityOfStationById))]
+        [OpenApiOperation(operationId: nameof(SetPriorityOfStationById), tags: new[] { "Frontend API" }, Summary = "Sets piority for staion by stationId.", Description = "Set the priority of a station.")]
+        [OpenApiParameter("id", In = ParameterLocation.Query, Description = "The station identifier.")]
+        [OpenApiParameter("priority", In = ParameterLocation.Query, Description = "The new priority for the station.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(double), Description = "Priority of station got changed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
+        public async Task<ActionResult<string>> SetPriorityOfStationById([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+        {
+            var bindContext = request.FunctionContext
+                                   .BindingContext;
+            string id = bindContext.BindingData["id"]
+                                   .ToString();
+            double priority = -1;
+            if (double.TryParse(bindContext.BindingData["priority"].ToString(), out priority))
+            {
+                var actionResult = await _sundialLogic.SetPriorityOfStationById(id, priority);
+                return new OkObjectResult(actionResult);
+            }
+            return new NotFoundObjectResult(HttpStatusCode.NotFound);
+        }
+
+        [Function(nameof(GetPriorityMultiplicators))]
+        [OpenApiOperation(operationId: nameof(GetPriorityMultiplicators), tags: new[] { "Frontend API" }, Summary = "Gets current piority by stationId.", Description = "Get the priority of a station.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PriorityMultiplicatorsDto), Description = "The priority of a station.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
+        public async Task<ActionResult<PriorityMultiplicatorsDto>> GetPriorityMultiplicators([HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData request)
+        {
+            var pmd = await _sundialLogic.GetPriorityMultiplicators();
+             return new OkObjectResult(pmd);
+        }
+
+        [Function(nameof(SetPriorityMultiplicators))]
+        [OpenApiOperation(operationId: nameof(SetPriorityMultiplicators), tags: new[] { "Frontend API" }, Summary = "Sets piority for staion by stationId.", Description = "Set the priority of a station.")]
+        [OpenApiParameter("priorityMultiplicator", In = ParameterLocation.Query, Description = "The station identifier.")]
+        [OpenApiParameter("distanzMultiplicator", In = ParameterLocation.Query, Description = "The new priority for the station.")]
+        [OpenApiParameter("randomMultiplicator", In = ParameterLocation.Query, Description = "The new priority for the station.")]
+        [OpenApiSecurity("function_key", SecuritySchemeType.ApiKey, Name = Application.FunctionsKeyHeader, In = OpenApiSecurityLocationType.Header)]
+        [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(double), Description = "Priority of station got changed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Summary = "Bad Request response.", Description = "Request could not be processed.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Resource not found.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized access.")]
+        [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Internal data layer conflict.")]
+        public async Task<ActionResult<PriorityMultiplicatorsDto>> SetPriorityMultiplicators([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData request)
+        {
+            var bindContext = request.FunctionContext
+                                   .BindingContext;
+            PriorityMultiplicatorsDto pmd = new PriorityMultiplicatorsDto();
+               try
+            { 
+            double pm = double.Parse(bindContext.BindingData["priorityMultiplicator"]
+                                   .ToString());
+            double dm = double.Parse(bindContext.BindingData["distanzMultiplicator"]
+                                   .ToString());
+            double rm = double.Parse(bindContext.BindingData["randomMultiplicator"]
+                                   .ToString());
+            
+        
+                pmd = await _sundialLogic.SetPriorityMultiplicators(pm, dm, rm);
+                return new OkObjectResult(pmd);
+            }catch(Exception ex) 
+            {
+                return new BadRequestObjectResult(pmd);
+            }
+            }
 
         [Function(nameof(CleanUp))]
         [OpenApiRequestBody("applicaton/json", typeof(CleanUpDto), Description = "Contains the timestamp for the clean up process and the optional station id.")]
